@@ -105,12 +105,18 @@ Notation "[ z ~-> f ]- e" := (subst_cont_cont z e f) (at level 68).
 Notation "[ z ~-> f ]* c" := (subst_clos_cont z c f) (at level 68).
 (** Definition of the body of an abstraction *)
 
-Definition body_prf p :=
+Definition body_prf_prf p :=
   exists L, forall x, x \notin L -> proof (p +^+ x).
-Definition body_cont e :=
+Definition body_prf_cont p :=
+  exists L, forall x, x \notin L -> proof (p+^-x). 
+Definition body_cont_prf e :=
   exists L, forall x, x \notin L -> context (e -^+ x).
-Definition body_clos e :=
+Definition body_cont_cont e :=
+  exists L, forall x, x \notin L -> context (e -^- x).
+Definition body_clos_prf e :=
   exists L, forall x, x \notin L -> closure (e *^+ x).
+Definition body_clos_cont e :=
+  exists L, forall x, x \notin L -> closure (e *^- x).
 
 
 (* ********************************************************************** *)
@@ -308,8 +314,6 @@ Proof.
   - destruct H as [p  e Hp He];intro k;simpl;fequal;[apply open_rec_prf_cont_id|apply open_rec_cont_cont_id];assumption.
 Qed.
 
-(* Ici MIX AUSSI *)
-
 
 (** Substitution for a fresh name is identity. *)
 
@@ -343,12 +347,12 @@ Qed.
 
 
 (** Substitution distributes on the open operation. *)
-
-Fixpoint subst_prf_prf_open_core x q p1 n p2  (H:proof q) : 
+ 
+Fixpoint subst_open_prf_prf_core x q p1 n p2  (H:proof q) : 
   [x ~+> q]+ {n ~+> p2}+ p1  = {n~+>([x ~+> q]+ p2)}+ ([x ~+> q]+ p1)
-with subst_cont_prf_open_core x q e n p2 (H:proof q) : 
+with subst_open_cont_prf_core x q e n p2 (H:proof q) : 
        [x ~+> q]- {n ~+> p2}- e  = {n~+>([x ~+> q]+ p2)}- ([x ~+> q]- e)
-with subst_clos_prf_open_core x q c n p2  (H:proof q) : 
+with subst_open_clos_prf_core x q c n p2  (H:proof q) : 
   [x ~+> q]* {n ~+> p2}* c  = {n~+>([x ~+> q]+ p2)}* ([x ~+> q]* c)                          
 .
 Proof.
@@ -367,31 +371,31 @@ Proof.
  - destruct c;intros;simpl;fequals*.
 Qed.
 
-Lemma subst_prf_prf_open:
+Lemma subst_open_prf_prf:
  forall x q p1 p2, proof q -> [x ~+> q]+ p1 +^^+p2  = ([x ~+> q]+ p1) +^^+ ([x ~+> q]+ p2).
 Proof.
-  intros x q p1 p2 H;exact (@subst_prf_prf_open_core x q p1 0 p2 H).
+  intros x q p1 p2 H;exact (@subst_open_prf_prf_core x q p1 0 p2 H).
 Qed.
 
-Lemma subst_cont_prf_open:
+Lemma subst_open_cont_prf:
  forall x q e p2, proof q -> [x ~+> q]- e -^^+p2  = ([x ~+> q]- e) -^^+ ([x ~+> q]+ p2).
 Proof.
-  intros x q e p2 H;exact (@subst_cont_prf_open_core x q e 0 p2 H).
+  intros x q e p2 H;exact (@subst_open_cont_prf_core x q e 0 p2 H).
 Qed.
 
-Lemma subst_clos_prf_open:
+Lemma subst_open_clos_prf:
  forall x q c p2, proof q -> [x ~+> q]* c *^^+p2  = ([x ~+> q]* c) *^^+ ([x ~+> q]+ p2).
 Proof.
-  intros x q c p2 H;exact (@subst_clos_prf_open_core x q c 0 p2 H).
+  intros x q c p2 H;exact (@subst_open_clos_prf_core x q c 0 p2 H).
 Qed.
 
 
 
-Fixpoint subst_prf_cont_open_core x (f:cont) p n e2 (H:context f) : 
+Fixpoint subst_open_prf_cont_core x (f:cont) p n e2 (H:context f) : 
   [x ~-> f]+ {n ~-> e2}+ p  = {n~->([x ~-> f]- e2)}+ ([x ~-> f]+ p)
-with subst_cont_cont_open_core x f e n e2 (H:context f) : 
+with subst_open_cont_cont_core x f e n e2 (H:context f) : 
        [x ~-> f]- {n ~-> e2}- e  = {n~->([x ~-> f]- e2)}- ([x ~-> f]- e)
-with subst_clos_cont_open_core x f c n e2 (H:context f) : 
+with subst_open_clos_cont_core x f c n e2 (H:context f) : 
   [x ~-> f]* {n ~-> e2}* c  = {n~->([x ~-> f]- e2)}* ([x ~-> f]* c)                          
 .
 Proof.
@@ -411,29 +415,29 @@ Proof.
 Qed.
 
 
-Lemma subst_prf_cont_open:
+Lemma subst_open_prf_cont:
  forall x f p1 e2, context f -> [x ~-> f]+ p1 +^^-e2  = ([x ~-> f]+ p1) +^^- ([x ~-> f]- e2).
 Proof.
-  intros x f p1 e2 H;exact (@subst_prf_cont_open_core x f p1 0 e2 H).
+  intros x f p1 e2 H;exact (@subst_open_prf_cont_core x f p1 0 e2 H).
 Qed.
 
 
-Lemma subst_cont_cont_open:
+Lemma subst_open_cont_cont:
  forall x f e1 e2, context f -> [x ~-> f]- e1 -^^-e2  = ([x ~-> f]- e1) -^^- ([x ~-> f]- e2).
 Proof.
-  intros x f e1 e2 H;exact (@subst_cont_cont_open_core x f e1 0 e2 H).
+  intros x f e1 e2 H;exact (@subst_open_cont_cont_core x f e1 0 e2 H).
 Qed.
 
-Lemma subst_clos_cont_open:
+Lemma subst_open_clos_cont:
  forall x f c e2, context f -> [x ~-> f]* c *^^-e2  = ([x ~-> f]* c) *^^- ([x ~-> f]- e2).
 Proof.
-  intros x f c e2 H;exact (@subst_clos_cont_open_core x f c 0 e2 H).
+  intros x f c e2 H;exact (@subst_open_clos_cont_core x f c 0 e2 H).
 Qed.
 
 
 
-(* Probably true mixing prf & cont *)
-(* ICI -> en profiter pour renommer : lm_name_descriptive_prf_prf *)
+(* Same thing, mixing positive & negatives substitutions *)
+
 Fixpoint subst_open_prf_prf_core1 x q p1 n e2  (H:proof q) : 
   [x ~+> q]+ {n ~-> e2}+ p1  = {n~->([x ~+> q]- e2)}+ ([x ~+> q]+ p1)
 with subst_open_cont_prf_core1 x q e n e2 (H:proof q) : 
@@ -446,78 +450,78 @@ Proof.
     destruct p1; intros;simpls.
     + reflexivity.
     + case_var*.
-      apply* open_rec_prf_prf_id1.
+      apply* open_rec_prf_cont_id.
     + fequals*.
     + fequals*.
  - destruct e;intros;simpls.
-   + reflexivity.
+   + case_nat*. 
    + reflexivity.
    + fequals*.
    + fequals*.
  - destruct c;intros;simpl;fequals*.
 Qed.
 
-Lemma subst_prf_prf_open:
- forall x q p1 p2, proof q -> [x ~+> q]+ p1 +^^+p2  = ([x ~+> q]+ p1) +^^+ ([x ~+> q]+ p2).
+Lemma subst_open_prf_prf1:
+ forall x q p1 e2, proof q -> [x ~+> q]+ p1 +^^-e2  = ([x ~+> q]+ p1) +^^- ([x ~+> q]- e2).
 Proof.
-  intros x q p1 p2 H;exact (@subst_prf_prf_open_core x q p1 0 p2 H).
+  intros x q p1 e2 H;exact (@subst_open_prf_prf_core1 x q p1 0 e2 H).
 Qed.
 
-Lemma subst_cont_prf_open:
- forall x q e p2, proof q -> [x ~+> q]- e -^^+p2  = ([x ~+> q]- e) -^^+ ([x ~+> q]+ p2).
+Lemma subst_open_cont_prf1:
+ forall x q e e2, proof q -> [x ~+> q]- e -^^-e2  = ([x ~+> q]- e) -^^- ([x ~+> q]- e2).
 Proof.
-  intros x q e p2 H;exact (@subst_cont_prf_open_core x q e 0 p2 H).
+  intros x q e e2 H;exact (@subst_open_cont_prf_core1 x q e 0 e2 H).
 Qed.
 
-Lemma subst_clos_prf_open:
- forall x q c p2, proof q -> [x ~+> q]* c *^^+p2  = ([x ~+> q]* c) *^^+ ([x ~+> q]+ p2).
+Lemma subst_open_clos_prf1:
+ forall x q c e2, proof q -> [x ~+> q]* c *^^-e2  = ([x ~+> q]* c) *^^- ([x ~+> q]- e2).
 Proof.
-  intros x q c p2 H;exact (@subst_clos_prf_open_core x q c 0 p2 H).
+  intros x q c e2 H;exact (@subst_open_clos_prf_core1 x q c 0 e2 H).
 Qed.
 
 
 
-Fixpoint subst_prf_cont_open_core x (f:cont) p n e2 (H:context f) : 
-  [x ~-> f]+ {n ~-> e2}+ p  = {n~->([x ~-> f]- e2)}+ ([x ~-> f]+ p)
-with subst_cont_cont_open_core x f e n e2 (H:context f) : 
-       [x ~-> f]- {n ~-> e2}- e  = {n~->([x ~-> f]- e2)}- ([x ~-> f]- e)
-with subst_clos_cont_open_core x f c n e2 (H:context f) : 
-  [x ~-> f]* {n ~-> e2}* c  = {n~->([x ~-> f]- e2)}* ([x ~-> f]* c)                          
+Fixpoint subst_open_prf_cont_core1 x (f:cont) p n q (H:context f) : 
+  [x ~-> f]+ {n ~+> q}+ p  = {n~+>([x ~-> f]+ q)}+ ([x ~-> f]+ p)
+with subst_open_cont_cont_core1 x f e n q (H:context f) : 
+       [x ~-> f]- {n ~+> q}- e  = {n~+>([x ~-> f]+ q)}- ([x ~-> f]- e)
+with subst_open_clos_cont_core1 x f c n q (H:context f) : 
+  [x ~-> f]* {n ~+> q}* c  = {n~+>([x ~-> f]+ q)}* ([x ~-> f]* c)                          
 .
 Proof.
   - generalize n.
     destruct p; intros;simpls.
-    + reflexivity.
+    + case_nat*.
     + reflexivity.
     + fequals*.
     + fequals*.
   - destruct e;intros;simpls.
-    + case_nat*. 
+    + reflexivity. 
     + case_var*.
-      apply* open_rec_cont_cont_id.
+      apply* open_rec_cont_prf_id.
     + fequals*.
     + fequals*.
   - destruct c;intros;simpl;fequals*.
 Qed.
 
 
-Lemma subst_prf_cont_open:
- forall x f p1 e2, context f -> [x ~-> f]+ p1 +^^-e2  = ([x ~-> f]+ p1) +^^- ([x ~-> f]- e2).
+Lemma subst_open_prf_cont1:
+ forall x f p1 q, context f -> [x ~-> f]+ p1 +^^+q  = ([x ~-> f]+ p1) +^^+ ([x ~-> f]+ q).
 Proof.
-  intros x f p1 e2 H;exact (@subst_prf_cont_open_core x f p1 0 e2 H).
+  intros x f p1 q H;exact (@subst_open_prf_cont_core1 x f p1 0 q H).
 Qed.
 
 
-Lemma subst_cont_cont_open:
- forall x f e1 e2, context f -> [x ~-> f]- e1 -^^-e2  = ([x ~-> f]- e1) -^^- ([x ~-> f]- e2).
+Lemma subst_open_cont_cont1:
+ forall x f e1 q, context f -> [x ~-> f]- e1 -^^+q  = ([x ~-> f]- e1) -^^+ ([x ~-> f]+ q).
 Proof.
-  intros x f e1 e2 H;exact (@subst_cont_cont_open_core x f e1 0 e2 H).
+  intros x f e1 q H;exact (@subst_open_cont_cont_core1 x f e1 0 q H).
 Qed.
 
-Lemma subst_clos_cont_open:
- forall x f c e2, context f -> [x ~-> f]* c *^^-e2  = ([x ~-> f]* c) *^^- ([x ~-> f]- e2).
+Lemma subst_open_clos_cont1:
+ forall x f c q, context f -> [x ~-> f]* c *^^+q  = ([x ~-> f]* c) *^^+ ([x ~-> f]+ q).
 Proof.
-  intros x f c e2 H;exact (@subst_clos_cont_open_core x f c 0 e2 H).
+  intros x f c q H;exact (@subst_open_clos_cont_core1 x f c 0 q H).
 Qed.
 
 
@@ -530,11 +534,11 @@ with subst_open_cont_prf_var x y e q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
 with subst_open_clos_prf_var x y c q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
   ([x ~+> q]* c) *^+ y = [x ~+> q]* (c *^+ y).
 Proof.
-  rewrite* subst_prf_prf_open.
+  rewrite* subst_open_prf_prf.
   simpl. case_var*.
-  rewrite* subst_cont_prf_open.
+  rewrite* subst_open_cont_prf.
   simpl. case_var*.
-  rewrite* subst_clos_prf_open.
+  rewrite* subst_open_clos_prf.
   simpl. case_var*.
 Qed.
 
@@ -545,15 +549,15 @@ with subst_open_cont_cont_var x y e f (Hxy: y <> x) (Hf:context f) {struct Hf}:
 with subst_open_clos_cont_var x y c f (Hxy: y <> x) (Hf:context f) {struct Hf}:
   ([x ~-> f]* c) *^- y = [x ~-> f]* (c *^- y).
 Proof.
-  rewrite* subst_prf_cont_open.
+  rewrite* subst_open_prf_cont.
   simpl. case_var*.
-  rewrite* subst_cont_cont_open.
+  rewrite* subst_open_cont_cont.
   simpl. case_var*.
-  rewrite* subst_clos_cont_open.
+  rewrite* subst_open_clos_cont.
   simpl. case_var*.
 Qed.
 
-(* Besoin mix !!*)
+
 Fixpoint subst_open_prf_prf_var1 x y p q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
   ([x ~+> q]+ p) +^- y = [x ~+> q]+ (p +^- y)
 with subst_open_cont_prf_var1 x y e q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
@@ -561,64 +565,72 @@ with subst_open_cont_prf_var1 x y e q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
 with subst_open_clos_prf_var1 x y c q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
   ([x ~+> q]* c) *^- y = [x ~+> q]* (c *^- y).
 Proof.
-  rewrite* subst_prf_prf_open.
-  simpl. case_var*.
-  rewrite* subst_cont_prf_open.
-  simpl. case_var*.
-  rewrite* subst_clos_prf_open.
-  simpl. case_var*.
+  rewrite* subst_open_prf_prf1.
+  rewrite* subst_open_cont_prf1.
+  rewrite* subst_open_clos_prf1.
+Qed.
+
+Fixpoint subst_open_prf_cont_var1 x y p f (Hxy: y <> x) (Hf:context f) {struct Hf}:
+  ([x ~-> f]+ p) +^+ y = [x ~-> f]+ (p +^+ y)
+with subst_open_cont_cont_var1 x y e f (Hxy: y <> x) (Hf:context f) {struct Hf}:
+       ([x ~-> f]- e) -^+ y = [x ~-> f]- (e -^+ y)
+with subst_open_clos_cont_var1 x y c f (Hxy: y <> x) (Hf:context f) {struct Hf}:
+  ([x ~-> f]* c) *^+ y = [x ~-> f]* (c *^+ y).
+Proof.
+  rewrite* subst_open_prf_cont1.
+  rewrite* subst_open_cont_cont1.
+  rewrite* subst_open_clos_cont1.
 Qed.
 
 
 (** Opening up an abstraction of body t with a term u is the same as opening
   up the abstraction with a fresh name x and then substituting u for x. *)
 
-Fixpoint subst_prf_prf_intro  x p q:
+Fixpoint subst_intro_prf_prf  x p q:
   x \notin (fv_prf p) -> proof q -> p +^^+ q = [x ~+> q]+ (p +^+ x)
-with subst_cont_prf_intro  x e q:
+with subst_intro_cont_prf  x e q:
   x \notin (fv_cont e) -> proof q -> e -^^+ q = [x ~+> q]- (e -^+ x)
-with subst_clos_prf_intro  x c q:
+with subst_intro_clos_prf  x c q:
   x \notin (fv_clos c) -> proof q -> c *^^+ q = [x ~+> q]* (c *^+ x)
-
 .
 Proof.
   - intros Fr Wu.
-    rewrite* subst_prf_prf_open.
+    rewrite* subst_open_prf_prf.
     destruct (@subst_prf_fresh x p q  (co_bvar 0) Fr) as [H _].
     rewrite* H.
     simpl. case_var*.
   - intros Fr Wu.
-    rewrite* subst_cont_prf_open.
+    rewrite* subst_open_cont_prf.
     destruct (@subst_cont_fresh x e q  (co_bvar 0) Fr) as [H _].
     rewrite* H.
     simpl. case_var*.
   - intros Fr Wu.
-    rewrite* subst_clos_prf_open.
+    rewrite* subst_open_clos_prf.
     destruct (@subst_clos_fresh x c q  (co_bvar 0) Fr) as [H _].
     rewrite* H.
     simpl. case_var*.
 Qed.
 
-Fixpoint subst_prf_cont_intro  x p f:
+Fixpoint subst_intro_prf_cont  x p f:
   x \notin (fv_prf p) -> context f -> p +^^- f = [x ~-> f]+ (p +^- x)
-with subst_cont_cont_intro  x e f:
+with subst_intro_cont_cont  x e f:
   x \notin (fv_cont e) -> context f -> e -^^- f = [x ~-> f]- (e -^- x)
-with subst_clos_cont_intro  x c f:
+with subst_intro_clos_cont  x c f:
   x \notin (fv_clos c) -> context f-> c *^^- f = [x ~-> f]* (c *^- x)
 .
 Proof.
   - intros Fr Wu.
-    rewrite* subst_prf_cont_open.
+    rewrite* subst_open_prf_cont.
     destruct (@subst_prf_fresh x p (prf_bvar 0) f Fr) as  [_ H].
     rewrite* H.
     simpl. case_var*.
   - intros Fr Wu.
-    rewrite* subst_cont_cont_open.
+    rewrite* subst_open_cont_cont.
     destruct (@subst_cont_fresh x e (prf_bvar 0) f Fr) as [_ H].
     rewrite* H.
     simpl. case_var*.
   - intros Fr Wu.
-    rewrite* subst_clos_cont_open.
+    rewrite* subst_open_clos_cont.
     destruct (@subst_clos_fresh x c (prf_bvar 0) f Fr) as [_ H].
     rewrite* H.
     simpl. case_var*.
@@ -631,11 +643,11 @@ Qed.
 
 (** Terms are stable by substitution *)
 
-Fixpoint subst_prf_prf x p q (Hp:proof p) (Hq:proof q) {struct Hp}:
+Fixpoint proof_subst_prf_prf x p q (Hp:proof p) (Hq:proof q) {struct Hp}:
   proof ([x ~+> q]+ p)
-with subst_cont_prf x e q (He:context e) (Hq:proof q) {struct He}:
+with context_subst_cont_prf x e q (He:context e) (Hq:proof q) {struct He}:
   context ([x ~+> q]- e)
-with subst_clos_prf x c q (Hc:closure c) (Hq:proof q) {struct Hc}:
+with closure_subst_clos_prf x c q (Hc:closure c) (Hq:proof q) {struct Hc}:
   closure ([x ~+> q]* c).
 Proof.
   - induction Hp; simpls.
@@ -644,40 +656,116 @@ Proof.
       intros.
       rewrite* subst_open_prf_prf_var.
     + apply_fresh proof_mu.
-      (* Besoin mix !*)
-      rewrite <- subst_open_clos_cont_var.
-      Guarded.
-  case_var*.
-  apply_fresh term_abs. rewrite* subst_open_var.
+      rewrite* subst_open_clos_prf_var1.
+  - induction He;simpls.
+    + apply context_var.
+    + apply* context_stack.
+    + apply_fresh (context_mut).
+      rewrite* subst_open_clos_prf_var.
+  - induction Hc;simpls.
+    apply* closure_cl.
 Qed.
 
-Hint Resolve subst_term.
+Fixpoint proof_subst_prf_cont x p f (Hp:proof p) (Hf:context f) {struct Hp}:
+  proof ([x ~-> f]+ p)
+with context_subst_cont_cont x e f (He:context e) (Hf:context f) {struct He}:
+  context ([x ~-> f]- e)
+with closure_subst_clos_cont x c f (Hc:closure c) (Hf:context f) {struct Hc}:
+  closure ([x ~-> f]* c).
+Proof.
+  - induction Hp; simpls.
+    + apply proof_var.
+    + apply_fresh (proof_abs).
+      rewrite* subst_open_prf_cont_var1.
+    + apply_fresh proof_mu.
+      rewrite* subst_open_clos_cont_var.
+  - induction He;simpls.
+    + case_var*. 
+    + apply* context_stack.
+    + apply_fresh (context_mut).
+      rewrite* subst_open_clos_cont_var1.
+  - induction Hc;simpls.
+    apply* closure_cl.
+Qed.
+
+
+Hint Resolve proof_subst_prf_prf context_subst_cont_prf closure_subst_clos_prf.
+Hint Resolve proof_subst_prf_cont context_subst_cont_cont closure_subst_clos_cont.
 
 
 (* ********************************************************************** *)
-(** ** Terms are stable through open *)
+(** ** Proofs/contexts are stable through open *)
 
 (** Conversion from locally closed abstractions and bodies *)
 
-Lemma term_abs_to_body : forall t1, 
-  term (trm_abs t1) -> body t1.
-Proof. intros. unfold body. inversion* H. Qed.
+Lemma prf_abs_to_body : forall p, 
+  proof (prf_abs p) -> body_prf_prf p.
+Proof. intros. unfold body_prf_prf. inversion* H. Qed.
 
-Lemma body_to_term_abs : forall t1, 
-  body t1 -> term (trm_abs t1).
+Lemma body_to_prf_abs : forall p, 
+  body_prf_prf p -> proof (prf_abs p).
 Proof. intros. inversion* H. Qed.
 
-Hint Resolve term_abs_to_body body_to_term_abs.
+Lemma prf_mu_to_body : forall c, 
+  proof (prf_mu c) -> body_clos_cont c.
+Proof. intros. unfold body_clos_cont. inversion* H. Qed.
+Lemma body_to_prf_mu : forall c, 
+ body_clos_cont c ->  proof (prf_mu c).
+Proof. intros. inversion* H. Qed.
+
+Lemma cont_mut_to_body : forall c, 
+  context (co_mut c) -> body_clos_prf c.
+Proof. intros. unfold body_clos_prf. inversion* H. Qed.
+Lemma body_to_cont_mut : forall c, 
+ body_clos_prf c ->  context (co_mut c).
+Proof. intros. inversion* H. Qed.
+
+
+Hint Resolve prf_abs_to_body body_to_prf_abs.
+Hint Resolve prf_mu_to_body body_to_prf_mu.
+Hint Resolve cont_mut_to_body body_to_cont_mut.
+
+
 
 (** ** Opening a body with a term gives a term *)
 
-Lemma open_term : forall t u,
-  body t -> term u -> term (t ^^ u).
+Lemma open_prf_prf : forall p q,
+  body_prf_prf p -> proof q -> proof (p +^^+ q).
 Proof.
-  intros. destruct H. pick_fresh y. rewrite* (@subst_intro y).
+  intros. destruct H. pick_fresh y. rewrite* (@subst_intro_prf_prf y).
+Qed.
+Lemma open_prf_cont : forall p e,
+  body_prf_cont p -> context e -> proof (p +^^- e).
+Proof.
+  intros. destruct H. pick_fresh y. rewrite* (@subst_intro_prf_cont y).
 Qed.
 
-Hint Resolve open_term.
+Lemma open_cont_prf : forall e q,
+  body_cont_prf e -> proof q -> context (e -^^+ q).
+Proof.
+  intros. destruct H. pick_fresh y. rewrite* (@subst_intro_cont_prf y).
+Qed.
+Lemma open_cont_cont : forall e f,
+  body_cont_cont e -> context f -> context (e -^^- f).
+Proof.
+  intros. destruct H. pick_fresh y. rewrite* (@subst_intro_cont_cont y).
+Qed.
+
+Lemma open_clos_prf : forall c q,
+  body_clos_prf c -> proof q -> closure (c *^^+ q).
+Proof.
+  intros. destruct H. pick_fresh y. rewrite* (@subst_intro_clos_prf y).
+Qed.
+Lemma open_clos_cont : forall c e,
+  body_clos_cont c -> context e -> closure (c *^^- e).
+Proof.
+  intros. destruct H. pick_fresh y. rewrite* (@subst_intro_clos_cont y).
+Qed.
+
+
+Hint Resolve open_prf_prf open_prf_cont.
+Hint Resolve open_cont_prf open_cont_cont.
+Hint Resolve open_clos_prf open_clos_cont.
 
 
 (* ********************************************************************** *)
@@ -686,11 +774,19 @@ Hint Resolve open_term.
 (** A typing relation holds only if the environment has no
    duplicated keys and the pre-term is locally-closed. *)
 
-Lemma typing_regular : forall E e T,
-  typing E e T -> ok E /\ term e.
+Fixpoint typing_regular_prf E p T (Hp:typing_prf E p T):
+  ok E /\ proof p
+with typing_regular_cont E e T (Hp:typing_cont E e T):
+   ok E /\ context e
+with typing_regular_clos E c (Hp:typing_clos E c ):
+   ok E /\ closure c.
 Proof.
-  split; induction* H. 
-  pick_fresh y. forwards~ : (H0 y).
+  -split; induction* Hp. 
+   + pick_fresh y. forwards~ : (H0 y).
+   + pick_fresh a.
+     destruct* (typing_regular_clos (E & a ~ T) c ).
+   + apply_fresh proof_mu.
+     (* ICI *)
 Qed.
 
 (** The value predicate only holds on locally-closed terms. *)

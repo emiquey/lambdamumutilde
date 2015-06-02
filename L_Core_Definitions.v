@@ -124,7 +124,7 @@ Inductive proof : prf -> Prop :=
 with context : cont -> Prop :=
      | context_var : forall a, context (co_fvar a)
      | context_stack : forall p e, proof p -> context e -> context (co_stack p e)
-     | context_mut : forall c, (forall L a, a\notin L -> closure (c *^+ a)) ->
+     | context_mut : forall L c, (forall a, a\notin L -> closure (c *^+ a)) ->
                      context (co_mut c)
 with closure : clos -> Prop :=
      | closure_cl : (forall p e, proof p -> context e -> closure (cl p e))    
