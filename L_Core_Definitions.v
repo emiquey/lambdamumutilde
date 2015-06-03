@@ -62,6 +62,9 @@ with open_rec_clos_prf (k:nat) (c:clos) (q:prf) {struct c} : clos :=
 Definition open_prf_prf p q := open_rec_prf_prf 0 p q.
 Definition open_cont_prf e q := open_rec_cont_prf 0 e q.
 Definition open_clos_prf c q := open_rec_clos_prf 0 c q.
+Definition open_prf_prf_var p x := open_rec_prf_prf 0 p (prf_fvar x).
+Definition open_cont_prf_var e x := open_rec_cont_prf 0 e (prf_fvar x).
+Definition open_clos_prf_var c x := open_rec_clos_prf 0 c (prf_fvar x).
 
 
 Notation "{ k ~+> q }+ p" := (open_rec_prf_prf k p q) (at level 67).
@@ -73,6 +76,20 @@ Notation "c *^^+ q" := (open_clos_prf c q) (at level 67).
 Notation "p +^+ a" := (open_prf_prf p (prf_fvar a)) (at level 67).
 Notation "e -^+ a" := (open_cont_prf e (prf_fvar a)) (at level 67).
 Notation "c *^+ a" := (open_clos_prf c (prf_fvar a)) (at level 67).
+
+Lemma open_prf_prf_def p q: p +^^+q = {0 ~+> q}+ p.
+Proof. unfolds* open_prf_prf. Qed.
+Lemma open_cont_prf_def e q: e -^^+q = {0 ~+> q}- e.
+Proof. unfolds* open_cont_prf. Qed.
+Lemma open_clos_prf_def c q: c *^^+q= {0 ~+> q}* c.
+Proof. unfolds* open_clos_prf. Qed.
+Lemma open_prf_prf_var_def p y: p +^+y = {0 ~+> prf_fvar y}+ p.
+Proof. unfolds* open_prf_prf. Qed.
+Lemma open_cont_prf_var_def e y: e -^+y = {0 ~+> prf_fvar y}- e.
+Proof. unfolds* open_cont_prf. Qed.
+Lemma open_clos_prf_var_def c y: c *^+y = {0 ~+> prf_fvar y}* c.
+Proof. unfolds* open_clos_prf. Qed.
+  
 
 (** Opening up mu *)
 
@@ -99,7 +116,6 @@ Definition open_prf_cont p q := open_rec_prf_cont 0 p q.
 Definition open_cont_cont e q := open_rec_cont_cont 0 e q.
 Definition open_clos_cont c q := open_rec_clos_cont 0 c q.
 
-
 Notation "{ k ~-> f }+ p" := (open_rec_prf_cont k p f) (at level 67).
 Notation "{ k ~-> f }- e" := (open_rec_cont_cont k e f) (at level 67).
 Notation "{ k ~-> f }* c" := (open_rec_clos_cont k c f) (at level 67).
@@ -109,6 +125,20 @@ Notation "c *^^- f" := (open_clos_cont c f) (at level 67).
 Notation "p +^- a" := (open_prf_cont p (co_fvar a)) (at level 67).
 Notation "e -^- a" := (open_cont_cont e (co_fvar a)) (at level 67).
 Notation "c *^- a" := (open_clos_cont c (co_fvar a)) (at level 67).
+
+Lemma open_prf_cont_def p f: p +^^-f = {0 ~-> f}+ p.
+Proof. unfolds* open_prf_cont. Qed.
+Lemma open_cont_cont_def e f: e -^^-f = {0 ~-> f}- e.
+Proof. unfolds* open_cont_cont. Qed.
+Lemma open_clos_cont_def c f: c *^^-f = {0 ~-> f}* c.
+Proof. unfolds* open_clos_cont. Qed.
+Lemma open_prf_cont_var_def p y: p +^-y = {0 ~-> co_fvar y}+ p.
+Proof. unfolds* open_prf_cont. Qed.
+Lemma open_cont_cont_var_def e y: e -^-y = {0 ~-> co_fvar y}- e.
+Proof. unfolds* open_cont_cont. Qed.
+Lemma open_clos_cont_var_def c y: c *^-y = {0 ~-> co_fvar y}* c.
+Proof. unfolds* open_clos_cont. Qed.
+
 
 (** Terms are locally-closed pre-terms *)
 

@@ -534,10 +534,13 @@ with subst_open_cont_prf_var x y e q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
 with subst_open_clos_prf_var x y c q (Hxy: y <> x) (Hq:proof q) {struct Hq}:
   ([x ~+> q]* c) *^+ y = [x ~+> q]* (c *^+ y).
 Proof.
+  unfolds open_prf_prf_var.
   rewrite* subst_open_prf_prf.
   simpl. case_var*.
+  unfolds open_cont_prf_var.
   rewrite* subst_open_cont_prf.
   simpl. case_var*.
+    unfolds open_clos_prf_var.
   rewrite* subst_open_clos_prf.
   simpl. case_var*.
 Qed.
@@ -549,6 +552,7 @@ with subst_open_cont_cont_var x y e f (Hxy: y <> x) (Hf:context f) {struct Hf}:
 with subst_open_clos_cont_var x y c f (Hxy: y <> x) (Hf:context f) {struct Hf}:
   ([x ~-> f]* c) *^- y = [x ~-> f]* (c *^- y).
 Proof.
+  unfolds open_prf_prf_var.
   rewrite* subst_open_prf_cont.
   simpl. case_var*.
   rewrite* subst_open_cont_cont.
@@ -774,11 +778,13 @@ Hint Resolve open_clos_prf open_clos_cont.
 (** A typing relation holds only if the environment has no
    duplicated keys and the pre-term is locally-closed. *)
 
+  
+  
 Fixpoint typing_regular_prf E p T (Hp:typing_prf E p T):
   ok E /\ proof p
-with typing_regular_cont E e T (Hp:typing_cont E e T):
+with typing_regular_cont E e T (He:typing_cont E e T):
    ok E /\ context e
-with typing_regular_clos E c (Hp:typing_clos E c ):
+with typing_regular_clos E c (Hc:typing_clos E c ):
    ok E /\ closure c.
 Proof.
   -split; induction* Hp. 
@@ -786,36 +792,93 @@ Proof.
    + pick_fresh a.
      destruct* (typing_regular_clos (E & a ~ T) c ).
    + apply_fresh proof_mu.
-     (* ICI *)
+     rewrite open_clos_cont_def.
+     destruct* (typing_regular_clos (E & y~T) c).
+     rewrite* <- (@open_rec_clos_cont_id c (co_fvar y) H1 0).
+  -split; induction* He.
+    + pick_fresh a.
+     destruct* (typing_regular_clos (E & a ~ T) c ).
+    + apply_fresh context_mut.
+      rewrite open_clos_prf_def.
+     destruct* (typing_regular_clos (E & y~T) c).
+     rewrite* <- (@open_rec_clos_prf_id c (prf_fvar y) H1 0).
+    + apply* context_stack.
+      destruct* (typing_regular_prf E q T H).
+  -induction Hc.
+   destruct (typing_regular_prf E p T H);destruct* (typing_regular_cont E e (neg T) H0).
 Qed.
 
 (** The value predicate only holds on locally-closed terms. *)
 
-Lemma value_regular : forall e,
-  value e -> term e.
+Lemma value_regular p (Hp:value p): proof p.
 Proof.
-  induction 1; autos*.
+  inversion* Hp.
 Qed.
+
 
 (** A reduction relation only holds on pairs of locally-closed terms. *)
 
-Lemma red_regular : forall e e',
-  red e e' -> term e /\ term e'.
+Lemma red_regular : forall c c',
+  red c c' -> closure c /\ closure c'.
 Proof.
-  induction 1; autos* value_regular.
+  intros.
+  induction H.
+  - split.
+    + apply closure_cl.
+      apply (value_regular H0).
+      exact H.
+    + apply open_clos_prf.
+      unfold body_clos_prf.
+      inversion H.
+      exists L.
+      exact H2.
+      exact (value_regular H0).
+  - split.
+    + apply* closure_cl.
+    + apply* closure_cl.
+      inversion H.
+      apply_fresh context_mut.
+      rewrite open_clos_prf_def.
+      simpls.
+      apply closure_cl.
+      * apply* H3.
+      * rewrite<- (@open_rec_cont_prf_id  e (prf_fvar y) H1 0).
+        exact H1.
+  - split.
+    + apply* closure_cl.
+      apply (@proof_mu (\{}) c).
+      intros a _.
+      rewrite open_clos_cont_def.
+      rewrite<- (@open_rec_clos_cont_id  c (co_fvar a) H0 0).
+      exact H0.
+    + rewrite open_clos_cont_def.
+      rewrite<- (@open_rec_clos_cont_id  c e H0 0).
+      exact H0.
 Qed.
 
 (** Automation for reasoning on well-formedness. *)
 
 Hint Extern 1 (ok ?E) =>
   match goal with
-  | H: typing E _ _ |- _ => apply (proj1 (typing_regular H))
+    | H: typing_prf E _ _ |- _ => apply (proj1 (typing_regular_prf H))
+    | H: typing_cont E _ _ |- _ => apply (proj1 (typing_regular_cont H))
+    | H: typing_clos E _  |- _ => apply (proj1 (typing_regular_clos H))
   end.
 
-Hint Extern 1 (term ?t) =>
+Hint Extern 1 (proof ?p) =>
   match goal with
-  | H: typing _ t _ |- _ => apply (proj2 (typing_regular H))
-  | H: red t _ |- _ => apply (proj1 (red_regular H))
-  | H: red _ t |- _ => apply (proj2 (red_regular H))
-  | H: value t |- _ => apply (value_regular H)
+  | H: typing_prf _ p _ |- _ => apply (proj2 (typing_regular_prf H))
+   | H: value p |- _ => apply (value_regular H)
+  end.
+
+Hint Extern 1 (context ?e) =>
+  match goal with
+  | H: typing_cont _ e _ |- _ => apply (proj2 (typing_regular_cont H))
+  end.
+
+Hint Extern 1 (closure ?c) =>
+  match goal with
+  | H: typing_clos _ c _ |- _ => apply (proj2 (typing_regular_clos H))
+  | H: red c _ |- _ => apply (proj1 (red_regular H))
+  | H: red _ c |- _ => apply (proj2 (red_regular H))
   end.
