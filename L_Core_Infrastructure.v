@@ -790,17 +790,17 @@ Proof.
   -split; induction* Hp. 
    + pick_fresh y. forwards~ : (H0 y).
    + pick_fresh a.
-     destruct* (typing_regular_clos (E & a ~ neg T) c ).
+     destruct* (typing_regular_clos (E & a ~ (negl (neg T))) c ).
    + apply_fresh proof_mu.
      rewrite open_clos_cont_def.
-     destruct* (typing_regular_clos (E & y~neg T) c).
+     destruct* (typing_regular_clos (E & y~negl (neg T)) c).
      rewrite* <- (@open_rec_clos_cont_id c (co_fvar y) H1 0).
   -split; induction* He.
     + pick_fresh a.
-     destruct* (typing_regular_clos (E & a ~ T) c ).
+     destruct* (typing_regular_clos (E & a ~ pos T) c ).
     + apply_fresh context_mut.
       rewrite open_clos_prf_def.
-     destruct* (typing_regular_clos (E & y~T) c).
+     destruct* (typing_regular_clos (E & y~ pos T) c).
      rewrite* <- (@open_rec_clos_prf_id c (prf_fvar y) H1 0).
     + apply* context_stack.
       destruct* (typing_regular_prf E q T H).

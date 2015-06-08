@@ -59,7 +59,7 @@ Proof.
     rewrite HA in Binds.
     apply* binds_weaken.
   + intros L A T c Ha IH E F G HA Ok.
-    apply_fresh typing_cont_mut.
+    apply_fresh typing_mut.
     rewrite <- concat_assoc.
     apply* (IH y).
     rewrite concat_assoc.
@@ -97,27 +97,19 @@ Qed.
 
 (** Typing is preserved by substitution. *)
 
-Lemma typing_prf_not_neg: forall q  U E,
-  E |= q:+ neg U -> False.
-Proof.
-intros q.  
-induction q;intros.
-+ admit.
-+ admit.
-
   
-Fixpoint typing_subst_prf F U E p T z q (H:(E & z ~ U & F) |= p:+ T) {struct H}:
+Fixpoint typing_subst_prf F U E p T z q (H:(E & z ~ pos U & F) |= p:+ T) {struct H}:
   E |= q :+ U -> (E & F) |= [z ~+> q]+ p :+ T
-with typing_subst_cont F U E e T z q (H:(E & z ~ U & F) |= e:- T ) {struct H}:
+with typing_subst_cont F U E e T z q (H:(E & z ~ pos U & F) |= e:- T ) {struct H}:
    E |= q :+ U -> (E & F) |= [z ~+> q]- e :- T
-with typing_subst_clos F U E c z q (H:c:* (E & z ~ U & F)) {struct H}:
+with typing_subst_clos F U E c z q (H:c:* (E & z ~ pos U & F)) {struct H}:
    E |= q :+ U -> [z ~+> q]* c :* (E&F).
 Proof.
   - introv Typq.
     inductions H;introv; simpl.
     + case_var.
       * apply binds_middle_eq_inv in H0.
-        rewrite H0.
+        inversion H0.
         apply_empty* typing_prf_weaken.
         assumption.
       * apply* typing_prf_var.
@@ -130,7 +122,7 @@ Proof.
       assert (y \notin L) by intuition.
       specialize (H y H0).
       rewrite <- concat_assoc in H.
-      destruct (typing_subst_clos (F & y~neg T) U E c z q H).
+      destruct (typing_subst_clos (F & y~negl (neg T)) U E c z q H).
       assumption.
       apply* typing_closure.
   - introv Typq.
@@ -140,9 +132,23 @@ Proof.
       intuition.
       destruct* H1.
       intuition.
-      rewrite <- H4 in Typq.
-      contradict Typq.
-      
+      inversion H4.
+    + apply_fresh typing_mut.
+      rewrite <- concat_assoc.
+      assert (y \notin L) by intuition.
+      specialize (H y H0).
+      rewrite <- concat_assoc in H.
+      destruct* (typing_subst_clos (F & y ~ pos T) U E c z q H).
+      apply* typing_closure.
+    + apply typing_stack.
+      * apply (typing_subst_prf F U E q0 T z q H Typq).
+      * apply (typing_subst_cont F U E e (neg U0) z q H0 Typq).
+  - intro Typq.
+    inductions H;introv;simpl.
+    apply (@typing_closure (E&F) T).    
+    * apply (typing_subst_prf F U E p T z q H Typq).
+    * apply (typing_subst_cont F U E e (neg T) z q H0 Typq).
+
 Admitted.
 
 (** Preservation (typing is preserved by reduction). *)

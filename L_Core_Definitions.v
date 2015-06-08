@@ -12,11 +12,15 @@ Implicit Types x : var.
 Inductive typ : Set :=
 | typ_var   : var -> typ
 | typ_arrow : typ -> typ -> typ
-| typ_mu :  typ
-| neg : typ -> typ.
+| typ_mu :  typ.
 
-(* Inductive cotyp : Set :=
-| neg : typ -> cotyp. *)
+
+ Inductive cotyp : Set :=
+ | neg : typ -> cotyp.
+
+ Inductive ltyp : Set :=
+ | pos: typ -> ltyp
+ | negl: cotyp -> ltyp.
 (*
 | cotyp_var : var -> cotyp
 | cotyp_arrow : typ -> cotyp -> cotyp
@@ -163,7 +167,7 @@ with closure : clos -> Prop :=
 
 (** Environment is an associative list mapping variables to types. *)
 
-Definition env := LibEnv.env typ.
+Definition env := LibEnv.env ltyp.
 (********************)
 (** Typing relation *)
 (********************)
@@ -175,25 +179,25 @@ Reserved Notation "c :* E" (at level 69).
 Inductive typing_prf : env -> prf -> typ -> Prop :=
   | typing_prf_var : forall E a T,
       ok E ->
-      binds a T E ->
+      binds a (pos T) E ->
       E |= (prf_fvar a) :+ T
   | typing_abs : forall L E U T p1,
       (forall a, a \notin L -> 
-        (E & a ~ U) |= p1 +^+ a :+ T) ->
+        (E & a ~ pos U) |= p1 +^+ a :+ T) ->
       E |= (prf_abs p1) :+ (typ_arrow U T)
   | typing_mu : forall L E T c,
       (forall a, a \notin L ->  
-                 (c :* E & a ~ neg T )) ->
+                 (c :* E & a ~ negl (neg T) )) ->
       (* Attention ici, on aimerait plutôt a ~ neg T*)
       E |= (prf_mu c) :+ T
-with typing_cont : env -> cont -> typ -> Prop :=
+with typing_cont : env -> cont -> cotyp -> Prop :=
   | typing_cont_var : forall E a T,
       ok E ->
-      binds a (neg T) E ->
+      binds a (negl (neg T)) E ->
       E |= (co_fvar a) :- (neg T)
-  | typing_cont_mut : forall L E T c,
+  | typing_mut : forall L E T c,
       (forall a, a \notin L -> 
-        c :* (E & a ~ T)) ->
+        c :* (E & a ~ pos T)) ->
       E |= (co_mut c) :- neg T
   | typing_stack : forall  E U T q e,
      (E |= q :+ T ) -> 
