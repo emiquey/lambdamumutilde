@@ -187,7 +187,7 @@ Inductive typing_prf : env -> prf -> typ -> Prop :=
       E |= (prf_abs p1) :+ (typ_arrow U T)
   | typing_mu : forall L E T c,
       (forall a, a \notin L ->  
-                 (c :* E & a ~ negl (neg T) )) ->
+                 (c*^-a :* E & a ~ negl (neg T) )) ->
       (* Attention ici, on aimerait plutôt a ~ neg T*)
       E |= (prf_mu c) :+ T
 with typing_cont : env -> cont -> cotyp -> Prop :=
@@ -197,7 +197,7 @@ with typing_cont : env -> cont -> cotyp -> Prop :=
       E |= (co_fvar a) :- (neg T)
   | typing_mut : forall L E T c,
       (forall a, a \notin L -> 
-        c :* (E & a ~ pos T)) ->
+        c*^+a :* (E & a ~ pos T)) ->
       E |= (co_mut c) :- neg T
   | typing_stack : forall  E U T q e,
      (E |= q :+ T ) -> 
