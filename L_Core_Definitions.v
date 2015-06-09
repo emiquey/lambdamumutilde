@@ -212,7 +212,7 @@ and "E |= e :- T" := (typing_cont E e T)
 and "c :* E" := (typing_clos E c)         .
 
 
- Require Import Coq.Program.Equality.
+Require Import Coq.Program.Equality.
 Scheme typing_prf_ind1 := Induction for typing_prf Sort Prop
 with typing_cont_ind1 := Induction for typing_cont Sort Prop
 with typing_clos_ind1 := Induction for typing_clos Sort Prop.

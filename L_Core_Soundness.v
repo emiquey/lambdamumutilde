@@ -16,9 +16,8 @@ Require Import LibLN
 
 
 Scheme typing_prf_ind := Induction for typing_prf Sort Prop
-                         with typing_cont_ind := Induction for typing_cont Sort Prop
-                       with typing_clos_ind := Induction for typing_clos Sort Prop.
-About typing_clos_ind.
+  with typing_cont_ind := Induction for typing_cont Sort Prop
+  with typing_clos_ind := Induction for typing_clos Sort Prop.
 
 Combined Scheme typing_mut_ind from typing_prf_ind,typing_cont_ind,typing_clos_ind.
 
@@ -31,7 +30,7 @@ A=E&G ->  ok (E & F & G) ->   (E & F & G) |= e :- T)
 /\ (forall A c  (H: (c:* A)) E F G,
  A=E&G -> ok (E & F & G) ->   c:* (E & F & G)) .
 Proof.
-  apply (typing_mut_ind ).
+  apply (typing_mut_ind).
   + intros A a T OkA Binds E F G HA Ok.
     apply* typing_prf_var. apply* binds_weaken.
     rewrite HA in Binds.
@@ -96,7 +95,7 @@ Proof.
 Qed.
 
 (** Typing is preserved by substitution. *)
-About typing_mut_ind.
+
 Lemma typing_subst_prf:
   (forall  A  p T (H: A |= p:+ T) F U E z q,
      A=(E & z ~ pos U & F) -> E |= q :+ U -> (E & F) |= [z ~+> q]+ p :+ T)
@@ -330,18 +329,18 @@ Qed.
 (** Progress (a well-typed term is either a value or it can 
   take a step of reduction). *)
 
-Lemma progress_result : progress.
-Proof.
-  unfold progress.
-  introv Typ. lets Typ': Typ. inductions Typ.
-  false* binds_empty_inv. 
-  left*.
-  right. destruct~ IHTyp1 as [Val1 | [t1' Red1]].
-    destruct~ IHTyp2 as [Val2 | [t2' Red2]].
-      inversions Typ1; inversions Val1. exists* (t0 ^^ t2).
-      exists* (trm_app t1 t2'). 
-    exists* (trm_app t1' t2).
-Qed.
+(* Lemma progress_result : progress. *)
+(* Proof. *)
+(*   unfold progress. *)
+(*   introv Typ. lets Typ': Typ. inductions Typ. *)
+(*   + false* binds_empty_inv.  *)
+(*   + left*. *)
+(*   + right. destruct~ H as [Val1 | [t1' Red1]]. *)
+(*     destruct~ IHTyp2 as [Val2 | [t2' Red2]]. *)
+(*       inversions Typ1; inversions Val1. exists* (t0 ^^ t2). *)
+(*       exists* (trm_app t1 t2').  *)
+(*     exists* (trm_app t1' t2). *)
+(* Qed. *)
 
 
 

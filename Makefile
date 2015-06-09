@@ -19,7 +19,7 @@ COQBIN=
 
 ############################################################################
 
-INCLUDES=-R $(TLC) TLC -R . ""
+INCLUDES=-R $(TLC) TLC -R . "L"
 
 COQC=$(COQBIN)coqc $(INCLUDES)
 COQDEP=$(COQBIN)coqdep $(INCLUDES)
