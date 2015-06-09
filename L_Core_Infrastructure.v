@@ -778,22 +778,41 @@ Hint Resolve open_clos_prf open_clos_cont.
 (** A typing relation holds only if the environment has no
    duplicated keys and the pre-term is locally-closed. *)
 
-  
-  
-Fixpoint typing_regular_prf E p T (Hp:typing_prf E p T):
-  ok E /\ proof p
-with typing_regular_cont E e T (He:typing_cont E e T):
-   ok E /\ context e
-with typing_regular_clos E c (Hc:typing_clos E c ):
-   ok E /\ closure c.
+(*
+Lemma typing_regular:
+  (forall E p T (Hp :typing_prf E p T),
+  ok E /\ proof p)
+/\ (forall E e T (He:typing_cont E e T),
+   ok E /\ context e)
+/\ (forall E c (Hc:typing_clos E c ),
+   ok E /\ closure c).
 Proof.
-  -split; induction* Hp. 
-   + pick_fresh y. forwards~ : (H0 y).
-   + pick_fresh a.
-     destruct* (typing_regular_clos (E & a ~ (negl (neg T))) (c*^-a) ).
-   + apply_fresh proof_mu.
-     rewrite open_clos_cont_def.
-     destruct* (typing_regular_clos (E & y~negl (neg T)) (c*^-y)).
+  apply typing_mut_ind.
+  - intros e a T Ok Binds.  
+    auto.
+  - intros L E U T p Hp IH.
+    split.
+    + pick_fresh x.
+      forwards~ : (IH x).
+      destruct* H.
+    + apply (@proof_abs L).
+      intros a Ha; destruct* (IH a Ha).
+  - intros L E T c q Ha Hc (IH,IHc).
+    split.
+    + inversion* IH.
+    + apply_fresh (proof_mu).
+      intros.
+      
+      * destruct* (typing_regular_clos (E & a ~ neg T) (c*^-a) ).
+   + inductions Hp.
+     * apply proof_var.
+     * apply (proof_abs p1 H0).
+     * apply (@proof_mu L c).
+       destruct* (typing_regular_prf E p T Hp).
+   Guarded.
+   + apply_fresh (proof_mu).
+    rewrite open_clos_cont_def.
+     destruct* (typing_regular_clos (E & y~ neg T) (c*^-y)).
      (* rewrite* <- (@open_rec_clos_cont_id c (co_fvar y) H1 0). *)
   -split; induction* He.
     + pick_fresh a.
@@ -806,6 +825,33 @@ Proof.
       destruct* (typing_regular_prf E q T H).
   -induction Hc.
    destruct (typing_regular_prf E p T H);destruct* (typing_regular_cont E e (neg T) H0).
+Qed
+
+  *)  
+    Fixpoint typing_regular_prf E p T (Hp:typing_prf E p T):
+  ok E /\ proof p
+with typing_regular_cont E e T (He:typing_cont E e T):
+   ok E /\ context e
+with typing_regular_clos E c (Hc:typing_clos E c ):
+   ok E /\ closure c.
+Proof.
+  -split; induction* Hp.
+   + pick_fresh y. forwards~ : (H0 y).
+   + pick_fresh y. destruct* (typing_regular_clos (E & y ~ neg T) (c*^-y) ).
+   + apply_fresh (proof_mu).
+     destruct* (typing_regular_clos (E & y~ neg T) (c*^-y)).
+     (* rewrite* <- (@open_rec_clos_cont_id c (co_fvar y) H1 0). *)
+  -split; induction* He.
+    + pick_fresh a.
+     destruct* (typing_regular_clos (E & a ~ pos T) (c*^+a) ).
+    + apply_fresh context_mut.
+      rewrite open_clos_prf_def.
+     destruct* (typing_regular_clos (E & y~ pos T) (c*^+y)).
+     (* rewrite* <- (@open_rec_clos_prf_id c (prf_fvar y) H1 0). *)
+    + apply* context_stack.
+      destruct* (typing_regular_prf E q T H).
+  -induction Hc.
+   destruct (typing_regular_prf E p T H);destruct* (typing_regular_cont E e ( T) H0).
 Qed.
 
 (** The value predicate only holds on locally-closed terms. *)

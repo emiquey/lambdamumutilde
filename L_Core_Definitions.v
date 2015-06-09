@@ -15,12 +15,13 @@ Inductive typ : Set :=
 | typ_mu :  typ.
 
 
- Inductive cotyp : Set :=
+(* Inductive cotyp : Set :=
  | neg : typ -> cotyp.
+ *)
 
  Inductive ltyp : Set :=
  | pos: typ -> ltyp
- | negl: cotyp -> ltyp.
+ | neg: typ -> ltyp.
 (*
 | cotyp_var : var -> cotyp
 | cotyp_arrow : typ -> cotyp -> cotyp
@@ -187,28 +188,40 @@ Inductive typing_prf : env -> prf -> typ -> Prop :=
       E |= (prf_abs p1) :+ (typ_arrow U T)
   | typing_mu : forall L E T c,
       (forall a, a \notin L ->  
-                 (c*^-a :* E & a ~ negl (neg T) )) ->
+                 c*^-a :* E & a ~ neg T ) ->
       (* Attention ici, on aimerait plutôt a ~ neg T*)
       E |= (prf_mu c) :+ T
-with typing_cont : env -> cont -> cotyp -> Prop :=
+with typing_cont : env -> cont -> typ -> Prop :=
   | typing_cont_var : forall E a T,
       ok E ->
-      binds a (negl (neg T)) E ->
-      E |= (co_fvar a) :- (neg T)
+      binds a (neg T) E ->
+      E |= (co_fvar a) :- (T)
   | typing_mut : forall L E T c,
       (forall a, a \notin L -> 
         c*^+a :* (E & a ~ pos T)) ->
-      E |= (co_mut c) :- neg T
+      E |= (co_mut c) :- T
   | typing_stack : forall  E U T q e,
      (E |= q :+ T ) -> 
-     ( E |= e :- neg U ) ->
-      E |= (co_stack q e) :- neg (typ_arrow T U)
+     ( E |= e :- U ) ->
+      E |= (co_stack q e) :- (typ_arrow T U)
 with typing_clos : env -> clos -> Prop :=
      | typing_closure : forall E T p e,
-        (E |= p :+ T -> E |= e :- (neg T) -> (cl p e) :* E)
+        (E |= p :+ T -> E |= e :- T -> (cl p e) :* E)
 where "E |= p :+ T" := (typing_prf E p T)
 and "E |= e :- T" := (typing_cont E e T)
 and "c :* E" := (typing_clos E c)         .
+
+
+ Require Import Coq.Program.Equality.
+Scheme typing_prf_ind1 := Induction for typing_prf Sort Prop
+with typing_cont_ind1 := Induction for typing_cont Sort Prop
+with typing_clos_ind1 := Induction for typing_clos Sort Prop.
+(* About typing_clos_ind1. *)
+
+Combined Scheme typing_mut_ind from typing_prf_ind1,typing_cont_ind1,typing_clos_ind1.
+
+
+
 
 (** Definition of values (only abstractions are values) *)
 

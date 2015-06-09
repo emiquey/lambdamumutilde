@@ -14,7 +14,7 @@ Require Import LibLN
 
 (** Typing is preserved by weakening. *)
 
-Require Import Coq.Program.Equality.
+
 Scheme typing_prf_ind := Induction for typing_prf Sort Prop
                          with typing_cont_ind := Induction for typing_cont Sort Prop
                        with typing_clos_ind := Induction for typing_clos Sort Prop.
@@ -191,11 +191,11 @@ Qed.
 
 Lemma typing_subst_cont:
   (forall  A  p T (H: A |= p:+ T) F U E z f,
-     A=(E & z ~ negl (neg U) & F) -> E |= f :- neg U -> (E & F) |= [z ~-> f]+ p :+ T)
+     A=(E & z ~ (neg U) & F) -> E |= f :- U -> (E & F) |= [z ~-> f]+ p :+ T)
   /\(forall A e T (H: A |= e:- T ) F U E z f,
-   A=(E & z ~ negl (neg U) & F)   ->   E |= f :- neg U -> (E & F) |= [z ~-> f]- e :- T)
+   A=(E & z ~ (neg U) & F)   ->   E |= f :- U -> (E & F) |= [z ~-> f]- e :- T)
 /\(forall A c (H: c:* A) F U E  z f, 
- A=(E & z ~negl (neg U) & F) ->  E |= f :- neg U -> [z ~-> f]* c :* (E&F)).
+ A=(E & z ~ (neg U) & F) ->  E |= f :- U -> [z ~-> f]* c :* (E&F)).
 Proof.
   apply typing_mut_ind.
   - intros A a T Ok Binds F U E z q HA Typq.
@@ -259,24 +259,24 @@ Qed.
 (* Splitting this in three pieces *)
 
 Lemma typing_prf_subst_cont:
-  forall F U E p T z f,((E & z ~ negl (neg U) & F) |= p:+ T) ->
-  E |= f :- neg U -> (E & F) |= [z ~-> f]+ p :+ T.
+  forall F U E p T z f,((E & z ~ (neg U) & F) |= p:+ T) ->
+  E |= f :-  U -> (E & F) |= [z ~-> f]+ p :+ T.
 Proof.
 destruct typing_subst_cont as [Hp _ ].
 intros;apply* Hp.
 Qed.
 
 Lemma typing_cont_subst_cont:
-  forall F U E e T z f, (E & z ~ negl (neg U) & F) |= e:- T ->
-  E |= f :- neg U -> (E & F) |= [z ~-> f]- e :- T.
+  forall F U E e T z f, (E & z ~  (neg U) & F) |= e:- T ->
+  E |= f :-  U -> (E & F) |= [z ~-> f]- e :- T.
 Proof.
   destruct typing_subst_cont as [_ (He,_)].
   intros;apply* He.
 Qed.
   
 Lemma typing_clos_subst_cont:
-  forall F U E c z f, (c:* (E & z ~ negl (neg U) & F))->
-   E |= f :- neg U -> [z ~-> f]* c :* (E&F).
+  forall F U E c z f, (c:* (E & z ~  (neg U) & F))->
+   E |= f :-  U -> [z ~-> f]* c :* (E&F).
 Proof.
   destruct typing_subst_cont as [_ (_,Hc) ].
   intros;apply* Hc.
@@ -309,7 +309,7 @@ Proof.
     apply_empty* typing_clos_subst_prf.
   - inversion H0.
     apply* (@typing_closure E T0).
-    rewrite <-  H7 in *.
+    rewrite <-  H8 in *.
     inversion H.
     apply_fresh typing_mut.
     simpl.
