@@ -32,6 +32,44 @@ with size_clos (c:clos) {struct c} : nat :=
   end.
 
 
+Inductive size_prf_prop : prf -> nat -> Prop :=
+| size_prf_bvar : forall n, size_prf_prop (prf_bvar n) 1
+| size_prf_fvar : forall a, size_prf_prop (prf_fvar a) 1
+| size_abs : forall p n,  size_prf_prop p n -> size_prf_prop (prf_abs p) (S n)
+| size_mu : forall c n, size_clos_prop c n -> size_prf_prop (prf_mu c) (S n)
+with size_cont_prop : cont -> nat -> Prop :=
+     | size_co_bvar : forall n, size_cont_prop (co_bvar n) 1
+     | size_co_fvar : forall a, size_cont_prop (co_fvar a) 1
+     | size_mut : forall c n, size_clos_prop c n -> size_cont_prop (co_mut c) (S n)
+     | size_stack : forall q e n m, size_prf_prop q n -> size_cont_prop e m -> size_cont_prop (co_stack q e ) (n+m)
+with size_clos_prop : clos -> nat ->Prop :=
+  | size_closure : forall p e n m, size_prf_prop p n -> size_cont_prop e m -> size_clos_prop (cl p e ) (n+m).
+
+Fixpoint size_prf_ok p {struct p}: size_prf_prop p (size_prf p)
+with size_cont_ok e {struct e}: size_cont_prop e (size_cont e)
+with size_clos_ok c {struct c}: size_clos_prop c (size_clos c).
+Proof.
+  - induction p; simpl in *.
+    + apply size_prf_bvar.
+    + apply size_prf_fvar.      
+    + apply* size_abs.
+    + apply* size_mu.
+  - induction e.
+    + apply size_co_bvar.
+    + apply size_co_fvar.
+    + apply* size_stack.
+    + apply* size_mut.
+  - induction c.
+    apply* size_closure.
+Qed.
+
+Scheme size_prf_ind := Induction for size_prf_prop Sort Prop
+  with size_cont_ind := Induction for size_cont_prop Sort Prop
+  with size_clos_ind := Induction for size_clos_prop Sort Prop.
+Combined Scheme size_ind from size_prf_ind, size_cont_ind, size_clos_ind.
+
+(* raffinable avec size_*_ok pour faire disparaître la taille de la conclusion ? *)
+
 (** Computing free variables of a term. *)
 
 Fixpoint fv_prf (p : prf) {struct p} : vars :=
@@ -864,6 +902,44 @@ Qed.
 
 (** A reduction relation only holds on pairs of locally-closed terms. *)
 
+Print size_ind.
+
+
+         
+Lemma subst_context :  p e f k (H: proof ({k ~-> e}+ p)) {struct H}:
+  context (e) -> context(f) ->  proof ({k ~-> f}+ p)
+with context_subst_context  f e e' k (H:context ({k ~-> e}- f)){struct H}:
+       context (e) -> context(f) ->   context ({k ~-> e'}- f)
+with closure_subst_context c e f k (H:closure ({k ~-> e}*c)) {struct H}:
+ context (e) -> context(f) ->  closure ({k ~-> f}*c).
+About typing_mut_ind.
+Print size_prf.
+
+
+Proof.
+  inductions H;intros.
+  - destruct p;simpl in*;intuition; try (discriminate x).
+  - pick_fresh a.
+    assert (a\notin L) by intuition.
+    destruct p;simpl in*;intuition;try (discriminate x).
+    apply (H0 a H3 (p+^+a)) .
+
+Fixpoint proof_subst_context p e f k {struct p}:
+  context (e) -> context(f) -> proof ({k ~-> e}+ p) ->  proof ({k ~-> f}+ p)
+with context_subst_context  f e e' k {struct e}:
+       context (e) -> context(f) -> context ({k ~-> e}- f) ->  context ({k ~-> e'}- f)
+with closure_subst_context c e f k {struct c}:
+ context (e) -> context(f) -> closure ({k ~-> e}*c) ->  closure ({k ~-> e}*c).
+Proof.
+- intros He Hf Hp.
+  induction p;simpl in *.
+  + assumption.
+  + assumption.
+  + inversion Hp.
+
+
+
+
 Lemma red_regular : forall c c',
   red c c' -> closure c /\ closure c'.
 Proof.
@@ -898,14 +974,12 @@ Proof.
       (* rewrite<- (@open_rec_clos_cont_id  c (co_fvar a) H0 0). *)
       (* exact H0. *)
     + rewrite open_clos_cont_def.
-      About open_rec_clos_cont_id.
       inversion H.
       pick_fresh a.
       assert (a\notin L) by intuition.
       specialize (H2 a H3).
+      admit. (* vrai, faire un lemme closure (e) -> closure (f) -> closure ({0->e} c) -> closure ({0->f}c) *)
 (* FIX à finir ici *)
-      rewrite<- (@open_rec_clos_cont_id  c e H0 0).
-      exact H0.
 Qed.
 
 (** Automation for reasoning on well-formedness. *)
