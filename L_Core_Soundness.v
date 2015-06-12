@@ -329,18 +329,82 @@ Qed.
 (** Progress (a well-typed term is either a value or it can 
   take a step of reduction). *)
 
-(* Lemma progress_result : progress. *)
-(* Proof. *)
-(*   unfold progress. *)
-(*   introv Typ. lets Typ': Typ. inductions Typ. *)
-(*   + false* binds_empty_inv.  *)
-(*   + left*. *)
-(*   + right. destruct~ H as [Val1 | [t1' Red1]]. *)
-(*     destruct~ IHTyp2 as [Val2 | [t2' Red2]]. *)
-(*       inversions Typ1; inversions Val1. exists* (t0 ^^ t2). *)
-(*       exists* (trm_app t1 t2').  *)
-(*     exists* (trm_app t1' t2). *)
-(* Qed. *)
+Print progress.
+About typing_mut_ind.
+Search "fresh".
+       
+Lemma progress_result :
+  (forall E (p : prf) (T : typ),
+     E |= p :+ T -> E=empty ->
+     value p \/(exists L,forall a, a\notin L -> exists p' n, redn n (cl p (co_fvar a)) (cl p' (co_fvar a))))
+/\ (forall E (e:cont) (T : typ),
+      E |= e :- T -> E=empty -> True)
+/\ (forall E (c : clos) ,c :* E ->
+  forall a T, exists p' n,  (E=a~neg T ->redn n c (cl p' (co_fvar a)) /\ empty |= p' :+ T))
+.
+Proof.
+apply typing_mut_ind.
+- intros E p T Ok Binds HE.
+  rewrite HE in *.
+  false* binds_empty_inv.
+- intros L E U T p Hp IH  HE.
+  rewrite HE in *.
+  left*.
+  apply value_abs.
+  apply (@proof_abs L).
+  intros.
+  specialize (Hp a H).
+  destruct* (typing_regular_prf Hp).
+- intros L E T c Hc IH HE.
+  rewrite HE in *.
+  right.
+  exists L.
+  intros a Ha.
+  destruct* (IH a Ha a T) as (p',(n,Hn)).
+  destruct (Hn (concat_empty_l (a~neg T))) as (Red,Typp).
+  exists p' (n+1).
+  apply redS.
+  exists (c *^-a).
+  split.
+  About red_mu.
+  Search (closure _).
+  apply* red_mu.
+  admit. (*c+^-a closure -> c closure*)
+  assumption.
+- tauto.
+- tauto.
+- tauto.
+- intros E T p e Hp IHp He _ a.
+  
+  
+  Search ( _ --> _).
+  
+  destruct~ IHTyp2 as [Val2 | [t2' Red2]].
+      inversions Typ1; inversions Val1. exists* (t0 ^^ t2).
+      exists* (trm_app t1 t2').
+    exists* (trm_app t1' t2).
 
 
 
+
+
+  (progress) /\ (forall a c T, c  :* empty & a ~ neg T ->
+ exists p' n,
+    redn n (c) (cl p' (co_fvar a)) /\ empty |= p':+T).
+Proof.
+  unfold progress.
+  introv Typ. lets Typ': Typ. inductions Typ.
+  + false* binds_empty_inv.
+  + left*.
+  + right. destruct~ H as [Val1 | [t1' Red1]].
+    destruct~ IHTyp2 as [Val2 | [t2' Red2]].
+      inversions Typ1; inversions Val1. exists* (t0 ^^ t2).
+      exists* (trm_app t1 t2').
+    exists* (trm_app t1' t2).
+Qed.
+
+
+
+forall a c T, c  :* empty & a ~ neg T ->
+ exists p' n,
+    redn n (c) (cl p' (co_fvar a)) /\ empty |= p':+T

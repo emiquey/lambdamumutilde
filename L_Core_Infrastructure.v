@@ -892,12 +892,18 @@ Proof.
         exact H1.
   - split.
     + apply* closure_cl.
-      apply (@proof_mu (\{}) c).
-      intros a _.
-      rewrite open_clos_cont_def.
-      rewrite<- (@open_rec_clos_cont_id  c (co_fvar a) H0 0).
-      exact H0.
+      (* apply (@proof_mu (\{}) c). *)
+      (* intros a _. *)
+      (* rewrite open_clos_cont_def. *)
+      (* rewrite<- (@open_rec_clos_cont_id  c (co_fvar a) H0 0). *)
+      (* exact H0. *)
     + rewrite open_clos_cont_def.
+      About open_rec_clos_cont_id.
+      inversion H.
+      pick_fresh a.
+      assert (a\notin L) by intuition.
+      specialize (H2 a H3).
+(* FIX à finir ici *)
       rewrite<- (@open_rec_clos_cont_id  c e H0 0).
       exact H0.
 Qed.

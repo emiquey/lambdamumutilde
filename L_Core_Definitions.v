@@ -243,8 +243,7 @@ Inductive red : clos -> clos -> Prop :=
       context e ->
       red (cl (prf_abs p) (co_stack q e)) (cl q (co_mut (cl p e)))
   | red_mu : forall e c ,
-      context e ->
-      closure c ->         
+      proof (prf_mu c) -> context e ->
       red (cl (prf_mu c) e) (c *^^- e).
 
 Notation "c --> c'" := (red c c') (at level 68).
