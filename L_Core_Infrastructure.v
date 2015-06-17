@@ -63,12 +63,97 @@ Proof.
     apply* size_closure.
 Qed.
 
-Scheme size_prf_ind := Induction for size_prf_prop Sort Prop
+(* Scheme size_prf_ind := Induction for size_prf_prop Sort Prop
   with size_cont_ind := Induction for size_cont_prop Sort Prop
   with size_clos_ind := Induction for size_clos_prop Sort Prop.
 Combined Scheme size_ind from size_prf_ind, size_cont_ind, size_clos_ind.
+Print size_ind.
+*)
+Lemma induction_size :
+  forall (Pp:prf-> Prop) (Pe:cont-> Prop) (Pc:clos -> Prop),
+    (forall (n:nat), (forall p, size_prf p<=n -> Pp p)
+                     -> (forall e, size_cont e<=n -> Pe e)
+                     -> (forall c, size_clos c<=n -> Pc c)
+                     -> (forall p, size_prf p = S n -> Pp p)
+                        /\ (forall e, size_cont e = S n -> Pe e)
+                        /\ (forall c, size_clos c = S n -> Pc c))
+    -> forall n,(forall p, size_prf p<=n-> Pp p) /\ (forall e, size_cont e<=n -> Pe e)
+                /\ (forall c, size_clos c<=n ->Pc c).
+Proof.
+  intros.
+  assert (forall p : prf, size_prf p <= 0 -> Pp p) as Hp0.
+  intros p H0.
+  destruct p; simpl in H0;intuition.
+  assert (forall e : cont, size_cont e <= 0 -> Pe e) as He0.
+  intros e H0.
+  destruct e; simpl in H0;intuition.
+  destruct p; simpl in H0;intuition.
+  assert (forall c : clos, size_clos c <= 0 -> Pc c) as Hc0.
+  intros c H0.
+  destruct c;destruct p; simpl in H0;intuition.
+  induction n.
+  - split.
+  + intros p Hp.
+    apply Hp0; intuition.
+  + split.
+    * intros e He.
+      now apply He0.
+    * intros c Hc.
+      now apply Hc0.
+  - repeat split.
+    + intros p Hp.
+      destruct (Compare_dec.le_lt_eq_dec _ _ Hp).
+      * apply Lt.lt_n_Sm_le in l.
+      destruct IHn as (IHp, _).
+      apply (IHp p l).
+      * destruct IHn as (IHp,(IHe,IHc)).
+        destruct* (H n IHp IHe IHc) as (Ok,_).
+    + intros e He.
+      destruct (Compare_dec.le_lt_eq_dec _ _ He).
+      * apply Lt.lt_n_Sm_le in l.
+      destruct* IHn as (_,(IHe, _)).
+      * destruct IHn as (IHp,(IHe,IHc)).
+        destruct* (H n IHp IHe IHc) as (_,(Ok,_)).
+    + intros c Hc.
+      destruct (Compare_dec.le_lt_eq_dec _ _ Hc).
+      * apply Lt.lt_n_Sm_le in l.
+      destruct* IHn as (_,(_, IHc)).
+      * destruct IHn as (IHp,(IHe,IHc)).
+        destruct* (H n IHp IHe IHc) as (_,(_,Ok)).
+Qed.
 
-(* raffinable avec size_*_ok pour faire disparaître la taille de la conclusion ? *)
+Lemma generalize_size_ind:
+  forall (Pp:prf-> Prop) (Pe:cont-> Prop) (Pc:clos -> Prop),
+  (forall n,(forall p, size_prf p<=n-> Pp p) /\ (forall e, size_cont e<=n -> Pe e)
+           /\ (forall c, size_clos c<=n ->Pc c))
+           -> (forall p, Pp p) /\ (forall e, Pe e)/\ (forall c, Pc c).
+Proof.
+  intros.
+  repeat split;intros.
+  - destruct (H (size_prf p)) as (Hp,_).
+    apply* Hp.
+  - destruct (H (size_cont e)) as (_,(He,_)).
+    apply* He.
+  - destruct (H (size_clos c)) as (_,(_,Hc)).
+    apply* Hc.
+Qed.
+
+
+Lemma size_ind :
+  forall (Pp:prf-> Prop) (Pe:cont-> Prop) (Pc:clos -> Prop),
+    (forall (n:nat), (forall p, size_prf p<=n -> Pp p)
+                     -> (forall e, size_cont e<=n -> Pe e)
+                     -> (forall c, size_clos c<=n -> Pc c)
+                     -> (forall p, size_prf p = S n -> Pp p)
+                        /\ (forall e, size_cont e = S n -> Pe e)
+                        /\ (forall c, size_clos c = S n -> Pc c))
+    -> (forall p, Pp p) /\ (forall e, Pe e)/\ (forall c, Pc c).
+Proof.
+intros.  
+apply generalize_size_ind.
+apply* induction_size.
+Qed.
+    (* raffinable avec size_*_ok pour faire disparaître la taille de la conclusion ? *)
 
 (** Computing free variables of a term. *)
 
@@ -906,16 +991,12 @@ Print size_ind.
 
 
          
-Lemma subst_context :  p e f k (H: proof ({k ~-> e}+ p)) {struct H}:
+Lemma subst_context :  p e f k (H: proof ({k ~-> e}+ p)):
   context (e) -> context(f) ->  proof ({k ~-> f}+ p)
 with context_subst_context  f e e' k (H:context ({k ~-> e}- f)){struct H}:
        context (e) -> context(f) ->   context ({k ~-> e'}- f)
 with closure_subst_context c e f k (H:closure ({k ~-> e}*c)) {struct H}:
  context (e) -> context(f) ->  closure ({k ~-> f}*c).
-About typing_mut_ind.
-Print size_prf.
-
-
 Proof.
   inductions H;intros.
   - destruct p;simpl in*;intuition; try (discriminate x).
