@@ -332,7 +332,49 @@ Qed.
 Print progress.
 About typing_mut_ind.
 Search "fresh".
-       
+
+Lemma progress_one_step :
+  (forall E (p : prf) (T : typ),
+     E |= p :+ T -> E=empty ->
+     value p \/(exists L,forall a, a\notin L -> exists c, red (cl p (co_fvar a)) (c)))
+(*/\ (forall E (e:cont) (T : typ),
+      E |= e :- T -> E=empty -> True)
+/\ (forall E (c : clos) ,c :* E ->
+   (E=empty -> True))*)
+.
+Proof.
+  intros E p T Hp.
+  induction Hp.
+  -intros HE.
+   rewrite HE in *.
+   false* binds_empty_inv.
+  - intros HE.
+  left*.
+  apply value_abs.
+  apply (@proof_abs L).
+  intros.
+  specialize (H a H1).
+  destruct* (typing_regular_prf H).
+- intros HE.
+  right.
+  exists L.
+  intros a Ha.
+  exists (c*^-a).
+  apply* red_mu.
+  apply_fresh proof_mu.
+  assert (y\notin L) as Hy by intuition.
+  specialize (H y Hy).
+  apply (typing_regular_clos) in H.
+  destruct* H.
+Qed.
+
+
+
+
+
+
+
+  
 Lemma progress_result :
   (forall E (p : prf) (T : typ),
      E |= p :+ T -> E=empty ->
@@ -340,10 +382,10 @@ Lemma progress_result :
 /\ (forall E (e:cont) (T : typ),
       E |= e :- T -> E=empty -> True)
 /\ (forall E (c : clos) ,c :* E ->
-  forall a T, exists p' n,  (E=a~neg T ->redn n c (cl p' (co_fvar a)) /\ empty |= p' :+ T))
+  forall a T, E=a~neg T ->exists p' n,  (redn n c (cl p' (co_fvar a))\/ c = cl p' (co_fvar a)) /\ E |= p' :+ T)
 .
 Proof.
-apply typing_mut_ind.
+  apply typing_mut_ind.
 - intros E p T Ok Binds HE.
   rewrite HE in *.
   false* binds_empty_inv.
@@ -360,51 +402,38 @@ apply typing_mut_ind.
   right.
   exists L.
   intros a Ha.
-  destruct* (IH a Ha a T) as (p',(n,Hn)).
-  destruct (Hn (concat_empty_l (a~neg T))) as (Red,Typp).
-  exists p' (n+1).
-  apply redS.
-  exists (c *^-a).
-  split.
-  About red_mu.
-  Search (closure _).
-  apply* red_mu.
-  admit. (*c+^-a closure -> c closure*)
-  assumption.
+  destruct* (IH a Ha a T (concat_empty_l (a~neg T))) as (p',(n,([Red|Eq],Typ))).
+  + exists p' (n+1).
+    apply redS.
+    exists (c *^-a).
+    split.
+    * apply* red_mu.
+      apply_fresh proof_mu.
+      assert (y\notin L) as Hy by intuition.
+      specialize (Hc y Hy).
+      apply (typing_regular_clos) in Hc.
+      destruct* Hc as (_,Ok).
+    * assumption.
+  + exists p' 1.
+    apply red1.        
+    rewrite <- Eq.
+    apply* red_mu.
+    apply_fresh proof_mu.
+    assert (y\notin L) as Hy by intuition.
+    specialize (Hc y Hy).
+    apply (typing_regular_clos) in Hc.
+    destruct* Hc as (_,Ok).
 - tauto.
 - tauto.
 - tauto.
-- intros E T p e Hp IHp He _ a.
-  
-  
-  Search ( _ --> _).
-  
-  destruct~ IHTyp2 as [Val2 | [t2' Red2]].
-      inversions Typ1; inversions Val1. exists* (t0 ^^ t2).
-      exists* (trm_app t1 t2').
-    exists* (trm_app t1' t2).
-
-
-
-
-
-  (progress) /\ (forall a c T, c  :* empty & a ~ neg T ->
- exists p' n,
-    redn n (c) (cl p' (co_fvar a)) /\ empty |= p':+T).
-Proof.
-  unfold progress.
-  introv Typ. lets Typ': Typ. inductions Typ.
-  + false* binds_empty_inv.
-  + left*.
-  + right. destruct~ H as [Val1 | [t1' Red1]].
-    destruct~ IHTyp2 as [Val2 | [t2' Red2]].
-      inversions Typ1; inversions Val1. exists* (t0 ^^ t2).
-      exists* (trm_app t1 t2').
-    exists* (trm_app t1' t2).
-Qed.
-
-
-
-forall a c T, c  :* empty & a ~ neg T ->
- exists p' n,
-    redn n (c) (cl p' (co_fvar a)) /\ empty |= p':+T
+- intros E T p e Hp IHp He _ a U HE.
+  rewrite HE in *.
+  inversion He.
+  + apply binds_single_inv in H0.
+    destruct H0.
+    inversion H4.
+    subst.
+    exists p 0.
+    split~.
+    + admit.
+  + subst.
