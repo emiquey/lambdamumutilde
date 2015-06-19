@@ -63,6 +63,31 @@ Proof.
     apply* size_closure.
 Qed.
 
+Lemma size_prf_ge_1: forall p, 1 <= size_prf p.
+Proof.
+  intro p.
+  destruct p;simpl;intuition.
+Qed.
+
+Lemma size_cont_ge_1: forall e, 1 <= size_cont e.
+Proof.
+  intro e.
+  destruct e;simpl;intuition.
+  assert (ok:=size_prf_ge_1 p).
+  intuition.
+Qed.
+
+Lemma size_clos_le_1: forall c, 2 <= size_clos c.
+Proof.
+  intro c.
+  destruct c as (p,e);simpl.
+  assert (ok:=size_prf_ge_1 p).
+  assert (ok':=size_cont_ge_1 e).
+  intuition.
+Qed.
+
+
+
 (* Scheme size_prf_ind := Induction for size_prf_prop Sort Prop
   with size_cont_ind := Induction for size_cont_prop Sort Prop
   with size_clos_ind := Induction for size_clos_prop Sort Prop.
@@ -154,6 +179,7 @@ apply generalize_size_ind.
 apply* induction_size.
 Qed.
     (* raffinable avec size_*_ok pour faire disparaître la taille de la conclusion ? *)
+
 
 (** Computing free variables of a term. *)
 
@@ -951,7 +977,7 @@ Proof.
 Qed
 
   *)  
-    Fixpoint typing_regular_prf E p T (Hp:typing_prf E p T):
+ Fixpoint typing_regular_prf E p T (Hp:typing_prf E p T):
   ok E /\ proof p
 with typing_regular_cont E e T (He:typing_cont E e T):
    ok E /\ context e
@@ -989,36 +1015,255 @@ Qed.
 
 Print size_ind.
 
+(* Lemma subst_proof_0: forall p q r, *)
+(*                        (proof(p) -> proof(q)) -> *)
+(*                        (proof(r) -> proof ({0 ~+> r}+ p)-> proof({0~+> r}+q)). *)
+(* Proof. *)
+(*   intros. *)
 
-         
-Lemma subst_context :  p e f k (H: proof ({k ~-> e}+ p)):
-  context (e) -> context(f) ->  proof ({k ~-> f}+ p)
-with context_subst_context  f e e' k (H:context ({k ~-> e}- f)){struct H}:
-       context (e) -> context(f) ->   context ({k ~-> e'}- f)
-with closure_subst_context c e f k (H:closure ({k ~-> e}*c)) {struct H}:
- context (e) -> context(f) ->  closure ({k ~-> f}*c).
+Search proof.
+
+(* Lemma subst_proof: forall p q, proof(p) -> (proof q) -> forall k,proof({k~+>q}+p).
 Proof.
-  inductions H;intros.
-  - destruct p;simpl in*;intuition; try (discriminate x).
-  - pick_fresh a.
-    assert (a\notin L) by intuition.
-    destruct p;simpl in*;intuition;try (discriminate x).
-    apply (H0 a H3 (p+^+a)) .
+ *)
 
-Fixpoint proof_subst_context p e f k {struct p}:
-  context (e) -> context(f) -> proof ({k ~-> e}+ p) ->  proof ({k ~-> f}+ p)
-with context_subst_context  f e e' k {struct e}:
-       context (e) -> context(f) -> context ({k ~-> e}- f) ->  context ({k ~-> e'}- f)
-with closure_subst_context c e f k {struct c}:
- context (e) -> context(f) -> closure ({k ~-> e}*c) ->  closure ({k ~-> e}*c).
+(* Lemma open_rec_eq_comm : forall p q e i, proof(q) -> context(e) -> *)
+(*                                          ({i ~+> q}+ ({i ~-> e }+ p)) = ({i ~+> q}+ p)\/ ({i ~+> q}+ ({i ~-> e }+ p)) = ({i ~+> q}+ p). *)
+(* Proof. *)
+  
+Fixpoint open_rec_prf_mix_comm p q e i j {struct p}:
+  proof(q) -> context(e) -> ({i ~+> q}+ ({j ~-> e }+ p)) = ({j ~-> e }+ ({i ~+> q}+ p))
+with open_rec_cont_mix_comm f q e i j {struct f}:
+       proof(q) -> context(e) -> ({i ~+> q}- ({j ~-> e }- f)) = ({j ~-> e }- ({i ~+> q}- f))
+with open_rec_clos_mix_comm c q e i j {struct c}:
+       proof(q) -> context(e) -> ({i ~+> q}* ({j ~-> e }* c)) = ({j ~-> e }* ({i ~+> q}* c)).
 Proof.
-- intros He Hf Hp.
-  induction p;simpl in *.
-  + assumption.
-  + assumption.
-  + inversion Hp.
+- induction p;simpl;intros.
+  + case_nat.
+    * apply* open_rec_prf_cont_id.
+    * unfold open_rec_prf_cont. reflexivity.
+  + reflexivity.
+  + assert ({S i ~+> q }+ ({j ~-> e }+ p) ={j ~-> e }+ ({S i ~+> q }+ p)) as Heq.
+    * apply* open_rec_prf_mix_comm.
+    * now rewrite Heq.
+  + assert ({i ~+> q }* ({S j ~-> e }* c) ={S j ~-> e }* ({i ~+> q }* c)) as Heq.
+    * apply* open_rec_clos_mix_comm.
+    * now rewrite Heq.
+- induction f;simpl;intros.
+  +  case_nat.
+    * now rewrite <- (open_rec_cont_prf_id q H0 i).
+    * unfold open_rec_cont_prf. reflexivity.
+  + reflexivity.
+  + rewrite (open_rec_prf_mix_comm p q e i j H H0).
+    now rewrite (open_rec_cont_mix_comm f q e i j H H0).
+  + now (rewrite (open_rec_clos_mix_comm c q e (S i) j H H0)).
+- induction c as (p,f);simpl;intros.
+  rewrite (open_rec_prf_mix_comm p q e i j H H0).
+  now rewrite (open_rec_cont_mix_comm f q e i j H H0).
+Qed.
 
 
+Fixpoint open_rec_prf_cont_comm p e f i j {struct p}:
+  i<> j -> context(e) -> context(f) -> ({i ~-> e}+ ({j ~-> f }+ p)) = ({j ~-> f }+ ({i ~-> e}+ p))
+with open_rec_cont_cont_comm e f g i j {struct e}:
+  i<> j -> context(f) -> context(g) -> ({i ~-> f}- ({j ~-> g }- e)) = ({j ~-> g }- ({i ~-> f}- e)) 
+with open_rec_clos_cont_comm c e f i j {struct c}:
+  i<> j -> context(e) -> context(f) -> ({i ~-> e}* ({j ~-> f }* c)) = ({j ~-> f }* ({i ~-> e}* c)).
+Proof.
+- destruct p;simpl;intros;try tauto.
+  + now rewrite (open_rec_prf_cont_comm p e f i j H H0 H1).
+  + apply not_eq_S in H. 
+    now rewrite (open_rec_clos_cont_comm c e f (S i) (S j) H H0 H1).
+- destruct e;simpl;intros;try tauto.
+  + case_nat;simpl.
+    * rewrite* If_r.
+      simpl.
+      rewrite* If_l.
+      rewrite* <- (open_rec_cont_cont_id f H1 i).
+    * case_nat;simpl.
+      rewrite* <- (open_rec_cont_cont_id g H0 j).  
+      rewrite* If_r.
+  + rewrite (open_rec_prf_cont_comm p f g i j H H0 H1).
+    now rewrite (open_rec_cont_cont_comm e f g i j H H0 H1).
+  + now rewrite (open_rec_clos_cont_comm c f g  i j H H0 H1).
+- destruct c as (p,g);simpl;intros.
+  rewrite (open_rec_prf_cont_comm p e f i j H H0 H1).
+  now rewrite (open_rec_cont_cont_comm g e f i j H H0 H1).
+Qed.
+
+
+Fixpoint size_prf_subst_var p k y {struct p} :
+  size_prf ({k ~+> prf_fvar y }+ p) = size_prf p
+with size_cont_subst_var e k y {struct e} :
+       size_cont ({k ~+> prf_fvar y }- e) = size_cont e
+with size_clos_subst_var c k y {struct c} :
+       size_clos ({k ~+> prf_fvar y }* c) = size_clos c.
+Proof.
+- revert k y; induction p;simpl;intros.  
+  + case_nat*.
+  + reflexivity.
+  + now rewrite (IHp (S k) y).
+  + now rewrite (size_clos_subst_var c k y).
+- revert k y; induction e;simpl;intros;try tauto.  
+  + rewrite (IHe (k) y).
+    now rewrite (size_prf_subst_var p k y).
+  + now rewrite (size_clos_subst_var c (S k) y).
+- destruct c as (p,e);simpl.
+  rewrite (size_prf_subst_var p k y).
+  now rewrite (size_cont_subst_var e k y).
+Qed.
+
+Fixpoint size_prf_subst_covar p k y {struct p} :
+  size_prf ({k ~-> co_fvar y }+ p) = size_prf p
+with size_cont_subst_covar e k y {struct e} :
+       size_cont ({k ~-> co_fvar y }- e) = size_cont e
+with size_clos_subst_covar c k y {struct c} :
+       size_clos ({k ~-> co_fvar y }* c) = size_clos c.
+Proof.
+- revert k y; induction p;simpl;intros;try tauto.  
+  + now rewrite (IHp k y).
+  + now rewrite (size_clos_subst_covar c (S k) y).
+- revert k y; induction e;simpl;intros;try tauto.
+  + case_nat*.
+  + rewrite (IHe (k) y).
+    now rewrite (size_prf_subst_covar p k y).
+  + now rewrite (size_clos_subst_covar c k y).
+- destruct c as (p,e);simpl.
+  rewrite (size_prf_subst_covar p k y).
+  now rewrite (size_cont_subst_covar e k y).
+Qed. 
+
+
+
+Lemma subst_context: (forall p e f k,
+  (context (e) -> context(f) -> proof ({k ~-> e}+ p) ->  proof ({k ~-> f}+ p)))
+/\(forall f e e' k,
+       context (e) -> context(e') -> context ({k ~-> e}- f) ->  context ({k ~-> e'}- f))
+/\(forall c e f k,
+ context (e) -> context(f) -> closure ({k ~-> e}*c) ->  closure ({k ~-> f}*c)).
+Proof.
+  apply size_ind.
+  intros n Hp He Hc.
+  repeat split;intros.
+  - destruct p;simpl in *.
+    + assumption.
+    + assumption.
+    + inversion H2.
+      apply_fresh proof_abs.
+      apply eq_add_S in H.
+      assert (y \notin L) as Ly by intuition.
+      specialize (H4 y Ly).
+      rewrite open_prf_prf_var_def in *.
+      rewrite* (@open_rec_prf_mix_comm p (prf_fvar y) f 0 k).
+      rewrite* (@open_rec_prf_mix_comm p (prf_fvar y) e 0 k) in H4.
+      assert (size_prf ({0 ~+> prf_fvar y }+ p) <= n) as Size.
+      rewrite size_prf_subst_var.
+      intuition.
+      apply (Hp (({0 ~+> prf_fvar y }+ p)) Size e f k H0 H1 H4).
+    + inversion H2.
+      apply_fresh proof_mu.
+      assert (y \notin L) as Ly by intuition.
+      specialize (H4 y Ly).
+      rewrite open_clos_cont_var_def in *.
+      rewrite* open_rec_clos_cont_comm.
+      rewrite* open_rec_clos_cont_comm in H4.
+      apply eq_add_S in H.
+      assert (size_clos ({0 ~-> co_fvar y }* c) <= n) as Size.
+      rewrite size_clos_subst_covar.
+      intuition.
+      apply (Hc _ Size e f (S k) H0 H1 H4).
+  - destruct e; simpl in *.
+    + case_nat*.
+    + assumption.
+    + inversion H2.
+      assert (Sp1:=size_prf_ge_1 p).
+      assert (Se1:=size_cont_ge_1 e).
+      assert (size_prf p <= n) as Sp by intuition.
+      assert (size_cont e <= n) as Se  by intuition.
+      apply context_stack.
+      * apply (Hp p Sp _ _ _ H0 H1 H5).
+      * apply (He e Se _ _ _ H0 H1 H6).
+    + inversion H2.
+      apply_fresh context_mut.
+      assert (y \notin L) as Ly by intuition.
+      specialize (H4 y Ly).
+      rewrite open_clos_prf_var_def in *.
+      Check open_rec_clos_mix_comm.
+      rewrite* (@open_rec_clos_mix_comm c (prf_fvar y) e' 0 (k)).
+      rewrite* (@open_rec_clos_mix_comm c (prf_fvar y) e0 0 (k)) in H4.
+      assert (size_clos ({0 ~+> prf_fvar y }* c) <= n) as Size.
+      rewrite size_clos_subst_var.
+      apply eq_add_S in H.
+      intuition.
+      apply* (Hc _  Size e0 e').
+  - destruct c as (p,g);simpl in *.
+    inversion H2.
+    assert (Sp1:=size_prf_ge_1 p).
+    assert (Se1:=size_cont_ge_1 g).
+    assert (size_prf p <= n) as Sp by intuition.
+    assert (size_cont g <= n) as Se  by intuition.
+    apply closure_cl.
+    + apply* (Hp _ Sp e f).
+    + apply* (He _ Se e f).
+Qed.
+
+      
+(* Lemma subst_context: (forall p q r e f k, *)
+(*                         (context (e) -> context(f) -> proof ({k ~-> e}+ p) ->  proof ({k ~-> f}+ p)) *)
+(*                        /\ (proof (q) -> proof(r) -> proof ({k ~+> q}+ p) ->  proof ({k ~+> r}+ p))) *)
+(* /\(forall f e e' k, *)
+(*        context (e) -> context(f) -> context ({k ~-> e}- f) ->  context ({k ~-> e'}- f)) *)
+(* /\(forall c e f k, *)
+(*  context (e) -> context(f) -> closure ({k ~-> e}*c) ->  closure ({k ~-> e}*c)). *)
+(* Proof. *)
+(*   apply size_ind. *)
+(*   intros n Hp He Hc. *)
+(*   repeat split;intros. *)
+(*   - induction p;simpl in *. *)
+(*     + assumption. *)
+(*     + assumption. *)
+(*     + (* Check open_prf_prf. *) *)
+(* (*       Check prf_abs_to_body. *) *)
+(* (*       assert (body:=prf_abs_to_body H2). *) *)
+(* (*       unfold body_prf_prf in body. *) *)
+(*       inversion H2. *)
+(*       apply_fresh proof_abs. *)
+(*       apply eq_add_S in H. *)
+(*       assert (y \notin L) as Ly by intuition. *)
+(*       specialize (H4 y Ly). *)
+(*       rewrite open_prf_prf_var_def in *. *)
+      
+
+
+(*       rewrite open_prf_prf_var_def in H4. *)
+(*       destruct* (Hp ({k ~-> f }+ p) _ ). *)
+      
+(* Lemma subst_context :  p e f k (H: proof ({k ~-> e}+ p)): *)
+(*   context (e) -> context(f) ->  proof ({k ~-> f}+ p) *)
+(* with context_subst_context  f e e' k (H:context ({k ~-> e}- f)){struct H}: *)
+(*   context (e) -> context(f) ->   context ({k ~-> e'}- f) *)
+(* with closure_subst_context c e f k (H:closure ({k ~-> e}*c)) {struct H}: *)
+(*  context (e) -> context(f) ->  closure ({k ~-> f}*c). *)
+(* Proof. *)
+(*   inductions H;intros. *)
+(*   - destruct p;simpl in*;intuition; try (discriminate x). *)
+(*   - pick_fresh a. *)
+(*     assert (a\notin L) by intuition. *)
+(*     destruct p;simpl in*;intuition;try (discriminate x). *)
+(*     apply (H0 a H3 (p+^+a)) . *)
+
+(* Fixpoint proof_subst_context p e f k {struct p}: *)
+(*   context (e) -> context(f) -> proof ({k ~-> e}+ p) ->  proof ({k ~-> f}+ p) *)
+(* with context_subst_context  f e e' k {struct e}: *)
+(*        context (e) -> context(f) -> context ({k ~-> e}- f) ->  context ({k ~-> e'}- f) *)
+(* with closure_subst_context c e f k {struct c}: *)
+(*  context (e) -> context(f) -> closure ({k ~-> e}*c) ->  closure ({k ~-> e}*c). *)
+(* Proof. *)
+(* - intros He Hf Hp. *)
+(*   induction p;simpl in *. *)
+(*   + assumption. *)
+(*   + assumption. *)
+(*   + inversion Hp. *)
 
 
 Lemma red_regular : forall c c',
@@ -1049,18 +1294,14 @@ Proof.
         exact H1.
   - split.
     + apply* closure_cl.
-      (* apply (@proof_mu (\{}) c). *)
-      (* intros a _. *)
-      (* rewrite open_clos_cont_def. *)
-      (* rewrite<- (@open_rec_clos_cont_id  c (co_fvar a) H0 0). *)
-      (* exact H0. *)
     + rewrite open_clos_cont_def.
       inversion H.
       pick_fresh a.
       assert (a\notin L) by intuition.
       specialize (H2 a H3).
-      admit. (* vrai, faire un lemme closure (e) -> closure (f) -> closure ({0->e} c) -> closure ({0->f}c) *)
-(* FIX à finir ici *)
+      rewrite open_clos_cont_var_def in H2.
+      destruct subst_context as (_,(_,Hs)).
+      apply* (Hs c (co_fvar a) e).
 Qed.
 
 (** Automation for reasoning on well-formedness. *)
