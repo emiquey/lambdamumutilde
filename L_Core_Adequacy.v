@@ -383,33 +383,50 @@ Proof.
     + apply eprf_var.
     + pick_fresh x. apply* (@eprf_abs x).
     + pick_fresh x. apply* (@eprf_mu x).
-
-      apply closure_to_eclos.
-      
+  - induction He.
+    + apply econt_var.
+    + apply econt_stack.
+      * apply (proof_to_eprf p H).
+      * assumption.
+    + pick_fresh x. apply* (@econt_mut x).
+  -induction Hc.
+   apply* eclos_cl.   
 Qed.
 
-Lemma eterm_to_term : forall t,
-  eterm t -> term t.
+Fixpoint eprf_to_proof p (Hp: eprf p) {struct Hp}:  proof p
+with econt_to_context e (He: econt e) {struct He}: context e
+with eclos_to_closure c (Hc: eclos c) {struct Hc}: closure c.
 Proof.
-  induction 1; eauto.
-  apply_fresh* term_abs as y. apply* term_rename.
-Qed.   
+  - induction Hp.
+    + apply proof_var.
+    + apply_fresh proof_abs.
+      apply* proof_rename_prf.
+    + apply_fresh proof_mu.
+      apply* closure_rename_cont.
+  - induction He.
+    + apply context_var.
+    + apply* context_stack.
+    + apply_fresh context_mut.
+      apply* closure_rename_prf.
+  -induction Hc.
+   apply* closure_cl.   
+Qed.
 
 (* ********************************************************************** *)
 (** ** Proving the equivalence of [value] and [evalue] *)
 
 Hint Constructors value evalue.
 
-Lemma value_to_evalue : forall t,
-  value t -> evalue t.
+Lemma value_to_evalue : forall p,
+  value p -> evalue p.
 Proof.
-  lets: term_to_eterm. induction 1; jauto.
+  lets: proof_to_eprf. induction 1; jauto.
 Qed.
 
-Lemma evalue_to_value : forall t,
-  evalue t -> value t.
+Lemma evalue_to_value : forall p,
+  evalue p -> value p.
 Proof.
-  lets: eterm_to_term. induction 1; jauto.
+  lets: eprf_to_proof. induction 1; jauto.
 Qed.
 
 (* ********************************************************************** *)
@@ -417,22 +434,23 @@ Qed.
 
 Hint Constructors red ered.
 
-Lemma red_to_ered : forall t t',
-  red t t' -> ered t t'.
+Lemma red_to_ered : forall c c',
+  red c c' -> ered c c'.
 Proof.
-  lets: term_to_eterm. lets: value_to_evalue. induction 1; jauto.
+  lets: proof_to_eprf. lets: context_to_econt. lets: value_to_evalue. induction 1; jauto.
 Qed.
 
-Lemma ered_to_red : forall t t',
-  ered t t' -> red t t'.
+Lemma ered_to_red : forall c c',
+  ered c c' -> red c c'.
 Proof.
-  lets: eterm_to_term. lets: evalue_to_value. induction 1; jauto.
+  lets: eprf_to_proof. lets: econt_to_context. lets: evalue_to_value. induction 1; jauto.
 Qed.
 
 (* ********************************************************************** *)
 (** ** Proving the equivalence of [typing] and [etyping] *)
 
-Hint Constructors typing etyping.
+Hint Constructors typing_prf typing_cont typing_clos.
+Hint Constructors etyping_prf etyping_cont etyping_clos.
 
 Lemma typing_to_etyping : forall E t T,
   E |= t ~: T  ->  E |== t ~: T.
