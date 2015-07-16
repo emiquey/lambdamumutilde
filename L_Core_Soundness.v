@@ -374,7 +374,7 @@ Qed.
 
 
 
-  
+(*  
 Lemma progress_result :
   (forall E (p : prf) (T : typ),
      E |= p :+ T -> E=empty ->
@@ -437,3 +437,4 @@ Proof.
     split~.
     + admit.
   + subst.
+*)
