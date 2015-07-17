@@ -69,7 +69,7 @@ endif
 
 clean :
 	rm -f *.vo .depend *.deps *.dot *.glob
-	@rm -f $(TLC)/*.vo $(TLC)/*.glob $(TLC)/*.v.d || echo ok  
+ 
 
 ############################################################################
 #
