@@ -1,6 +1,6 @@
 (***************************************************************************
-* Safety for Simply Typed Lambda Calculus (CBV) - Adequacy                 *
-* Brian Aydemir & Arthur Chargueraud, July 2007                            *
+* Safety for Lambda Mu Mutilde (CBV) - Infrastructure                      *
+* Étienne Miquey, June 2015                                                *
 ***************************************************************************)
 
 Set Implicit Arguments.
@@ -60,7 +60,7 @@ Inductive etyping_prf : env -> prf -> typ -> Prop :=
       E |== (prf_abs p) :+ (typ_arrow U T)
   | etyping_mu : forall a E T c,
       a \notin dom E \u fv_clos c ->
-      (c::* E & a ~ neg T) ->
+      (c*^-a ::* E & a ~ neg T) ->
       E |== prf_mu c :+ T
 with etyping_cont : env -> cont -> typ -> Prop :=
   | etyping_cont_var : forall E a T,
@@ -452,18 +452,40 @@ Qed.
 Hint Constructors typing_prf typing_cont typing_clos.
 Hint Constructors etyping_prf etyping_cont etyping_clos.
 
-Lemma typing_to_etyping : forall E t T,
-  E |= t ~: T  ->  E |== t ~: T.
+
+Fixpoint typing_to_etyping_prf E p T (Hp: E |= p :+ T) {struct Hp}: E |== p:+ T
+with typing_to_etyping_cont E e T (He: E |= e :- T) {struct He}: E |== e:- T
+with typing_to_etyping_clos E c (Hc: c:* E ) {struct Hc}: c::* E.
 Proof.
-  induction 1; eauto.
-  pick_fresh x. apply* (@etyping_abs x).
+  - induction Hp.
+    + apply* etyping_prf_var.
+    + pick_fresh x. apply* (@etyping_abs x).
+    + pick_fresh x. apply* (@etyping_mu x). 
+  - induction He.
+    + apply* etyping_cont_var.
+    + pick_fresh x. apply* (@etyping_mut x).
+    + apply* etyping_stack.
+  - induction Hc.
+    apply* etyping_closure.
 Qed.
 
-Lemma etyping_to_typing : forall E t T,
-  E |== t ~: T  ->  E |= t ~: T.
+Fixpoint etyping_to_typing_prf E p T (Hp: E |== p :+ T) {struct Hp}: E |= p:+ T
+with etyping_to_typing_cont E e T (He: E |== e :- T) {struct He}: E |= e:- T
+with etyping_to_typing_clos E c (Hc: c::* E ) {struct Hc}: c:* E.
 Proof.
-  induction 1; eauto.
-  apply_fresh* typing_abs as y. apply* typing_rename.   
+  - induction Hp.
+    + apply* typing_prf_var.
+    + apply_fresh* typing_abs.
+      apply* typing_prf_rename_prf.
+    + apply_fresh* typing_mu.
+      apply* typing_clos_rename_cont.
+  - induction He.
+    + apply* typing_cont_var.
+    + apply_fresh* typing_mut.
+      apply* typing_clos_rename_prf.
+    + apply* typing_stack.
+  - induction Hc.
+    apply* typing_closure.
 Qed.
 
 (* ********************************************************************** *)

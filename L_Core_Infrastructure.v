@@ -9,6 +9,7 @@
 Set Implicit Arguments.
 Require Import LibLN.
 Require Import L_Core_Definitions.
+
 (*********************************************************************** *)
 (** ** Additional Definitions used in the Proofs *)
 

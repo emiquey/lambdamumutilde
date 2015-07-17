@@ -1,6 +1,6 @@
 (***************************************************************************
-* Safety for Simply Typed Lambda Calculus (CBV) - Proofs                   *
-* Brian Aydemir & Arthur Chargueraud, July 2007                            *
+* Safety for Lambda Mu Mutilde (CBV) - Infrastructure                      *
+* Étienne Miquey, June 2015                                                *
 ***************************************************************************)
 
 Set Implicit Arguments.
