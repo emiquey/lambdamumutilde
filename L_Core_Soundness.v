@@ -329,9 +329,6 @@ Qed.
 (** Progress (a well-typed term is either a value or it can 
   take a step of reduction). *)
 
-Print progress.
-About typing_mut_ind.
-Search "fresh".
 
 Lemma progress_one_step :
   (forall E (p : prf) (T : typ),

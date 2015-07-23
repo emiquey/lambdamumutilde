@@ -1,4 +1,4 @@
-(***************************************************************************
+***************************************************************************
 * Safety for Lambda Mu Mutilde (CBV) - Infrastructure                      *
 * Étienne Miquey, June 2015                                                *
 ***************************************************************************)
@@ -135,8 +135,6 @@ Proof.
   (* introduce a renaming *)
   rewrite (@subst_intro_prf_prf x). 
   (* apply substitution result *)
-  SearchAbout ([ _ ~+> _ ]+ _ +^+ _).
-  Print subst_prf_prf.
   apply* proof_subst_prf_prf.
   (* use the fact that x is fresh *)
   assumption.

@@ -1,4 +1,4 @@
-(***************************************************************************
+S(***************************************************************************
 * Safety for Lambda Mu Mutilde (CBV) - Infrastructure                      *
 * Étienne Miquey, June 2015                                                *
 ***************************************************************************)
@@ -997,7 +997,6 @@ Proof.
     + apply_fresh context_mut.
       rewrite open_clos_prf_def.
      destruct* (typing_regular_clos (E & y~ pos T) (c*^+y)).
-     (* rewrite* <- (@open_rec_clos_prf_id c (prf_fvar y) H1 0). *)
     + apply* context_stack.
       destruct* (typing_regular_prf E q T H).
   -induction Hc.
@@ -1014,23 +1013,6 @@ Qed.
 
 (** A reduction relation only holds on pairs of locally-closed terms. *)
 
-Print size_ind.
-
-(* Lemma subst_proof_0: forall p q r, *)
-(*                        (proof(p) -> proof(q)) -> *)
-(*                        (proof(r) -> proof ({0 ~+> r}+ p)-> proof({0~+> r}+q)). *)
-(* Proof. *)
-(*   intros. *)
-
-Search proof.
-
-(* Lemma subst_proof: forall p q, proof(p) -> (proof q) -> forall k,proof({k~+>q}+p).
-Proof.
- *)
-
-(* Lemma open_rec_eq_comm : forall p q e i, proof(q) -> context(e) -> *)
-(*                                          ({i ~+> q}+ ({i ~-> e }+ p)) = ({i ~+> q}+ p)\/ ({i ~+> q}+ ({i ~-> e }+ p)) = ({i ~+> q}+ p). *)
-(* Proof. *)
   
 Fixpoint open_rec_prf_mix_comm p q e i j {struct p}:
   proof(q) -> context(e) -> ({i ~+> q}+ ({j ~-> e }+ p)) = ({j ~-> e }+ ({i ~+> q}+ p))
@@ -1189,7 +1171,6 @@ Proof.
       assert (y \notin L) as Ly by intuition.
       specialize (H4 y Ly).
       rewrite open_clos_prf_var_def in *.
-      Check open_rec_clos_mix_comm.
       rewrite* (@open_rec_clos_mix_comm c (prf_fvar y) e' 0 (k)).
       rewrite* (@open_rec_clos_mix_comm c (prf_fvar y) e0 0 (k)) in H4.
       assert (size_clos ({0 ~+> prf_fvar y }* c) <= n) as Size.
