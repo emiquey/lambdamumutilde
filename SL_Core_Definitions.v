@@ -373,8 +373,13 @@ with typing_sclos : env -> store -> sclos -> Prop :=
   | typing_sclosure : forall E tau tau' T p e,
      (typing_sprf E (tau'@@tau) p T ->
       typing_scont E (tau'@@tau) e T ->
-      typing_sclos E tau (scl p e tau'))
-.                            
+      typing_sclos E tau (scl p e tau')).
+
+
+Notation "E ; tau |= p :+ T" := (typing_prf E tau p T) (at level 68).
+Notation "E ; tau |= e :- T" := (typing_scont E tau e T) (at level 68).
+Notation "c :* E ; tau " := (typing_sclos E tau c ) (at level 68).
+
 
 (*** NOTATIONS ??? ****) 
 
@@ -385,7 +390,7 @@ with typing_scont_ind1 := Induction for typing_scont Sort Prop
 with typing_sclos_ind1 := Induction for typing_sclos Sort Prop.
 (* About typing_sclos_ind1. *)
 
-Combined Scheme typing_mut_ind from typing_sprf_ind1,typing_scont_ind1,typing_sclos_ind1.
+Combined Scheme typing_store_mut_ind from typing_sprf_ind1,typing_scont_ind1,typing_sclos_ind1.
 
 
 (** Definition of values (only abstractions are values) *)
@@ -398,34 +403,43 @@ Inductive value : sprf -> Prop :=
 
 (** Reduction relation - one step in call-by-value *)
 
-Inductive red : sclos -> sclos -> Prop :=
-  | red_mut : forall p c,
-      context (sco_mut c) ->
-      value p -> forall L a, (a \notin L -> 
-                              red (scl p (co_mut c) tau) (c*^^+ a)
-  | red_abs : forall p q e,
-      proof (sprf_abs p) -> proof q ->
-      context e ->
-      red (cl (sprf_abs p) (co_stack q e)) (cl q (co_mut (cl p e)))
-  | red_mu : forall e c ,
-      proof (sprf_mu c) -> context e ->
-      red (cl (sprf_mu c) e) (c *^^- e).
+Definition sclos_concat_store (c:sclos) (tau:store): sclos :=
+  match c with
+    | scl p e tau' => scl p e (concat_env tau tau')
+  end.
 
-Notation "c --> c'" := (red c c') (at level 68).
+Definition sclos_append_store (c:sclos) (tau:store): sclos :=
+  match c with
+    | scl p e tau' => scl p e (concat_env tau' tau)
+  end.
+
+Definition void:store := st nil.
+
+Inductive sred : sclos -> sclos -> Prop :=
+  | sred_mut : forall p c tau,
+      scontext (sco_mut c) ->
+      value p -> forall L a, (a \notin L -> 
+      sred (scl p (sco_mut c) tau) (sclos_append_store (c*^+ a) (cons_env a p tau)))
+  | sred_abs : forall p q e tau,
+      sproof (sprf_abs p) -> sproof q ->
+      scontext e ->
+      sred (scl (sprf_abs p) (sco_stack q e) tau) (scl q (sco_mut (scl p e void)) tau)
+  | sred_mu : forall e c tau,
+      sproof (sprf_mu c) -> scontext e ->
+      sred (scl (sprf_mu c) e tau) (sclos_append_store (c *^^- e) tau).
+
+Notation "c -s-> c'" := (sred c c') (at level 68).
 
 (** Goal is to prove preservation and progress *)
 
 Definition preservation := forall E c c',
-  c :* E ->
-  c --> c' ->
-   c':* E.
+  typing_sclos E void c ->
+  c -s-> c' ->
+  typing_sclos E void c'.
 
-Inductive redn : nat -> sclos -> sclos -> Prop :=
-| red1 : forall c c', red c c' -> redn 1 c c'
-| redS : forall c c' n, (exists c'', red c c'' /\ redn n c'' c' ) -> redn (n+1) c c'.
 
 Definition progress := forall p T, 
-  empty |= p:+T ->
+  typing_sprf empty void p T ->
   value p
-  \/ exists p' n, forall a, redn n (cl p (co_fvar a)) (cl p' (co_fvar a)).
+  \/ (exists L, forall a,(a\notin L -> exists c, sred (scl p (sco_fvar a) void) c)).
 

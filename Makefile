@@ -33,8 +33,10 @@ MUMUTILDE=\
 	  L_Core_Infrastructure\
 	  L_Core_Soundness
 	
+MUMUTILDESTORE=\
+	  SL_Core_Definitions
 
-ALL=$(MUMUTILDE) 
+ALL=$(MUMUTILDE) $(MUMUTILDESTORE)
 #NOT_COMPILING= 
 
 ############################################################################
